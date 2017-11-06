@@ -150,7 +150,7 @@ public class AttachmentDownloadJob extends MasterSecretJob implements Injectable
         relay = attachment.getRelay();
       }
 
-      return new SignalServiceAttachmentPointer(id, null, key, relay, Optional.<byte[]>absent());
+      return new SignalServiceAttachmentPointer(id, null, null, key, relay, Optional.<byte[]>absent());
     } catch (InvalidMessageException | IOException e) {
       Log.w(TAG, e);
       throw new InvalidPartException(e);

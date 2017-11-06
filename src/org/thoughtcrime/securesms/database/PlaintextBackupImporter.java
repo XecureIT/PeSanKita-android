@@ -23,7 +23,6 @@ public class PlaintextBackupImporter {
   public static void importPlaintextFromSd(Context context, MasterSecret masterSecret)
       throws NoExternalStorageException, IOException
   {
-    Log.w("PlaintextBackupImporter", "Importing plaintext...");
     verifyExternalStorageForPlaintextImport();
     importPlaintext(context, masterSecret);
   }
@@ -40,7 +39,6 @@ public class PlaintextBackupImporter {
   private static void importPlaintext(Context context, MasterSecret masterSecret)
       throws IOException
   {
-    Log.w("PlaintextBackupImporter", "importPlaintext()");
     SmsDatabase    db          = DatabaseFactory.getSmsDatabase(context);
     SQLiteDatabase transaction = db.beginTransaction();
 

@@ -131,7 +131,7 @@
     <string name="ConversationActivity_transport_insecure_sms">Insecure SMS</string>
     <string name="ConversationActivity_transport_insecure_mms">Insecure MMS</string>
     <string name="ConversationActivity_transport_signal">PeSankita</string>
-    <string name="ConversationActivity_lets_switch_to_signal">Let\'s switch to PeSankita %1$s</string>
+    <string name="ConversationActivity_lets_switch_to_signal">Let\'s use PeSankita %1$s</string>
     <string name="ConversationActivity_lets_use_this_to_chat">Let\'s use this to chat: %1$s</string>
     <string name="ConversationActivity_error_leaving_group">Error leaving group</string>
     <string name="ConversationActivity_mms_not_supported_title">MMS not supported</string>
@@ -269,10 +269,13 @@
     <!-- ExportFragment -->
     <string name="ExportFragment_export">Export</string>
     <string name="ExportFragment_export_plaintext_to_storage">Export plaintext to storage?</string>
+    <string name="ExportFragment_export_encrypted_to_storage">Export encrypted to storage?</string>
     <string name="ExportFragment_warning_this_will_export_the_plaintext_contents">Warning, this will export the plaintext contents of your PeSankita messages to storage.</string>
+    <string name="ExportFragment_warning_this_will_export_the_encrypted_contents">Warning, this will export the encrypted contents of your PeSankita messages to storage.</string>
     <string name="ExportFragment_cancel">Cancel</string>
     <string name="ExportFragment_exporting">Exporting</string>
     <string name="ExportFragment_exporting_plaintext_to_storage">Exporting plaintext to storage...</string>
+    <string name="ExportFragment_exporting_encrypted_to_storage">Exporting encrypted to storage...</string>
     <string name="ExportFragment_error_unable_to_write_to_storage">Error, unable to write to storage.</string>
     <string name="ExportFragment_error_while_writing_to_storage">Error while writing to storage.</string>
     <string name="ExportFragment_export_successful">Export successful.</string>
@@ -368,7 +371,7 @@
         <item quantity="one">Send 1 SMS invite?</item>
         <item quantity="other">Send %d SMS invites?</item>
     </plurals>
-    <string name="InviteActivity_lets_switch_to_signal">Let\'s switch to PeSankita: %1$s</string>
+    <string name="InviteActivity_lets_switch_to_signal">Let\'s use PeSankita: %1$s</string>
     <string name="InviteActivity_no_app_to_share_to">It looks like you don\'t have any apps to share to.</string>
     <string name="InviteActivity_friends_dont_let_friends_text_unencrypted">Friends don\'t let friends chat unencrypted.</string>
 
@@ -861,12 +864,14 @@
     <!-- database_upgrade_activity -->
     <string name="database_upgrade_activity__updating_database">Updating database...</string>
 
+    <string name="export_fragment__export_encrypted_backup">Export encrypted backup</string>
+    <string name="export_fragment__export_an_encrypted_backup_to_the_sd_card">Export an encrypted backup</string>
     <string name="export_fragment__export_plaintext_backup">Export plaintext backup</string>
     <string name="export_fragment__export_a_plaintext_backup_compatible_with">Export a plaintext backup compatible with \'SMS Backup &amp; Restore\' to storage</string>
     <string name="import_fragment__import_system_sms_database">Import system SMS database</string>
     <string name="import_fragment__import_the_database_from_the_default_system">Import the database from the default system messenger app</string>
-    <string name="import_fragment__restore_encrypted_backup">Restore encrypted backup</string>
-    <string name="import_fragment__restore_a_previously_exported_encrypted_signal_backup">Restore a previously exported encrypted PeSankita backup</string>
+    <string name="import_fragment__restore_encrypted_backup">Import encrypted backup</string>
+    <string name="import_fragment__restore_a_previously_exported_encrypted_signal_backup">Import a previously exported encrypted PeSankita backup</string>
     <string name="import_fragment__import_plaintext_backup">Import plaintext backup</string>
     <string name="import_fragment__import_a_plaintext_backup_file">Import a plaintext backup file. Compatible with \'SMS Backup &amp; Restore.\'</string>
 

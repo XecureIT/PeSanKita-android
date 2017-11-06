@@ -15,10 +15,10 @@ import java.util.List;
 
 public class PointerAttachment extends Attachment {
 
-  public PointerAttachment(@NonNull String contentType, int transferState, long size,
+  public PointerAttachment(@NonNull String contentType, String filename, int transferState, long size,
                            @NonNull String location, @NonNull String key, @NonNull String relay)
   {
-    super(contentType, transferState, size, location, key, relay);
+    super(contentType, filename, transferState, size, location, key, relay);
   }
 
   @Nullable
@@ -42,6 +42,7 @@ public class PointerAttachment extends Attachment {
         if (pointer.isPointer()) {
           String encryptedKey = MediaKey.getEncrypted(masterSecret, pointer.asPointer().getKey());
           results.add(new PointerAttachment(pointer.getContentType(),
+                                            pointer.getFilename(),
                                             AttachmentDatabase.TRANSFER_PROGRESS_AUTO_PENDING,
                                             pointer.asPointer().getSize().or(0),
                                             String.valueOf(pointer.asPointer().getId()),

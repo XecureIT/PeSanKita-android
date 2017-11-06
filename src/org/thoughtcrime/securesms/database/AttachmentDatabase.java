@@ -70,6 +70,7 @@ public class AttachmentDatabase extends Database {
           static final String ATTACHMENT_ID_ALIAS    = "attachment_id";
           static final String MMS_ID                 = "mid";
           static final String CONTENT_TYPE           = "ct";
+          static final String FILE_NAME              = "fn";
           static final String NAME                   = "name";
           static final String CONTENT_DISPOSITION    = "cd";
           static final String CONTENT_LOCATION       = "cl";
@@ -88,7 +89,7 @@ public class AttachmentDatabase extends Database {
   private static final String PART_ID_WHERE = ROW_ID + " = ? AND " + UNIQUE_ID + " = ?";
 
   private static final String[] PROJECTION = new String[] {ROW_ID + " AS " + ATTACHMENT_ID_ALIAS,
-                                                           MMS_ID, CONTENT_TYPE, NAME, CONTENT_DISPOSITION,
+                                                           MMS_ID, CONTENT_TYPE, FILE_NAME, NAME, CONTENT_DISPOSITION,
                                                            CONTENT_LOCATION, DATA, THUMBNAIL, TRANSFER_STATE,
                                                            SIZE, THUMBNAIL, THUMBNAIL_ASPECT_RATIO,
                                                            UNIQUE_ID};
@@ -96,7 +97,7 @@ public class AttachmentDatabase extends Database {
   public static final String CREATE_TABLE = "CREATE TABLE " + TABLE_NAME + " (" + ROW_ID + " INTEGER PRIMARY KEY, " +
     MMS_ID + " INTEGER, " + "seq" + " INTEGER DEFAULT 0, "                        +
     CONTENT_TYPE + " TEXT, " + NAME + " TEXT, " + "chset" + " INTEGER, "             +
-    CONTENT_DISPOSITION + " TEXT, " + "fn" + " TEXT, " + "cid" + " TEXT, "  +
+    CONTENT_DISPOSITION + " TEXT, " + FILE_NAME + " TEXT, " + "cid" + " TEXT, "  +
     CONTENT_LOCATION + " TEXT, " + "ctt_s" + " INTEGER, "                 +
     "ctt_t" + " TEXT, " + "encrypted" + " INTEGER, "                         +
     TRANSFER_STATE + " INTEGER, "+ DATA + " TEXT, " + SIZE + " INTEGER, "   +
@@ -320,6 +321,7 @@ public class AttachmentDatabase extends Database {
                                   databaseAttachment.hasData(),
                                   databaseAttachment.hasThumbnail(),
                                   mediaStream.getMimeType(),
+                                  databaseAttachment.getFilename(),
                                   databaseAttachment.getTransferState(),
                                   dataSize,
                                   databaseAttachment.getLocation(),
@@ -436,12 +438,18 @@ public class AttachmentDatabase extends Database {
   }
 
   DatabaseAttachment getAttachment(Cursor cursor) {
+    String filename = null;
+
+    int i = cursor.getColumnIndex(FILE_NAME);
+    if (i != -1) filename = cursor.getString(i);
+
     return new DatabaseAttachment(new AttachmentId(cursor.getLong(cursor.getColumnIndexOrThrow(ATTACHMENT_ID_ALIAS)),
                                                    cursor.getLong(cursor.getColumnIndexOrThrow(UNIQUE_ID))),
                                   cursor.getLong(cursor.getColumnIndexOrThrow(MMS_ID)),
                                   !cursor.isNull(cursor.getColumnIndexOrThrow(DATA)),
                                   !cursor.isNull(cursor.getColumnIndexOrThrow(THUMBNAIL)),
                                   cursor.getString(cursor.getColumnIndexOrThrow(CONTENT_TYPE)),
+                                  filename,
                                   cursor.getInt(cursor.getColumnIndexOrThrow(TRANSFER_STATE)),
                                   cursor.getLong(cursor.getColumnIndexOrThrow(SIZE)),
                                   cursor.getString(cursor.getColumnIndexOrThrow(CONTENT_LOCATION)),
@@ -467,6 +475,7 @@ public class AttachmentDatabase extends Database {
     ContentValues contentValues = new ContentValues();
     contentValues.put(MMS_ID, mmsId);
     contentValues.put(CONTENT_TYPE, attachment.getContentType());
+    contentValues.put(FILE_NAME, attachment.getFilename());
     contentValues.put(TRANSFER_STATE, attachment.getTransferState());
     contentValues.put(UNIQUE_ID, uniqueId);
     contentValues.put(CONTENT_LOCATION, attachment.getLocation());

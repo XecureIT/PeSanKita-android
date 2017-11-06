@@ -71,7 +71,7 @@ public class AvatarDownloadJob extends MasterSecretJob implements InjectableType
         attachment = File.createTempFile("avatar", "tmp", context.getCacheDir());
         attachment.deleteOnExit();
 
-        SignalServiceAttachmentPointer pointer     = new SignalServiceAttachmentPointer(avatarId, contentType, key, relay, Optional.<byte[]>absent());
+        SignalServiceAttachmentPointer pointer     = new SignalServiceAttachmentPointer(avatarId, contentType, null, key, relay, Optional.<byte[]>absent());
         InputStream                    inputStream = receiver.retrieveAttachment(pointer, attachment, 0);
         Bitmap                         avatar      = BitmapUtil.createScaledBitmap(context, new AttachmentModel(attachment, key), 500, 500);
 

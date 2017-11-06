@@ -109,7 +109,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_VIEW);
         intent.addCategory(Intent.CATEGORY_BROWSABLE);
-        intent.setData(Uri.parse("https://twilio.com"));
+        intent.setData(Uri.parse("https://www.xecureit.com"));
         try {
           startActivity(intent);
         } catch (ActivityNotFoundException e) {

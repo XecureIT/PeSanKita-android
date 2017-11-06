@@ -56,6 +56,7 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
   public static final String THREAD_ID_EXTRA = "thread_id";
   public static final String DATE_EXTRA      = "date";
   public static final String SIZE_EXTRA      = "size";
+  public static final String NAME_EXTRA      = "name";
 
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
 
@@ -66,6 +67,7 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
 
   private Uri       mediaUri;
   private String    mediaType;
+  private String    mediaName;
   private Recipient recipient;
   private long      threadId;
   private long      date;
@@ -147,6 +149,7 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
 
     mediaUri     = getIntent().getData();
     mediaType    = getIntent().getType();
+    mediaName    = getIntent().getStringExtra(NAME_EXTRA);
     date         = getIntent().getLongExtra(DATE_EXTRA, -1);
     size         = getIntent().getLongExtra(SIZE_EXTRA, 0);
     threadId     = getIntent().getLongExtra(THREAD_ID_EXTRA, -1);
@@ -209,7 +212,7 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
       public void onClick(DialogInterface dialogInterface, int i) {
         SaveAttachmentTask saveTask = new SaveAttachmentTask(MediaPreviewActivity.this, masterSecret);
         long saveDate = (date > 0) ? date : System.currentTimeMillis();
-        saveTask.execute(new Attachment(mediaUri, mediaType, saveDate));
+        saveTask.execute(new Attachment(mediaUri, mediaType, mediaName, saveDate));
       }
     });
   }

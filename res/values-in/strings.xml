@@ -113,7 +113,7 @@
   <string name="ConversationActivity_transport_insecure_sms">SMS tidak aman</string>
   <string name="ConversationActivity_transport_insecure_mms">MMS tidak aman</string>
   <string name="ConversationActivity_transport_signal">PeSankita</string>
-  <string name="ConversationActivity_lets_switch_to_signal">Ayo pindah ke PeSankita %1$s</string>
+  <string name="ConversationActivity_lets_switch_to_signal">Ayo pakai PeSankita %1$s</string>
   <string name="ConversationActivity_lets_use_this_to_chat">Ayo gunakan ini untuk mengobrol: %1$s</string>
   <string name="ConversationActivity_mms_not_supported_title">MMS tidak didukung</string>
   <string name="ConversationActivity_mms_not_supported_message">Pesan ini tidak bisa dikirimkan karena penyedia layanan seluler Anda tidak mendukung MMS.</string>
@@ -220,10 +220,13 @@
   <!--ExportFragment-->
   <string name="ExportFragment_export">Ekspor</string>
   <string name="ExportFragment_export_plaintext_to_storage">Ekspor plaintext ke media penyimpanan?</string>
+  <string name="ExportFragment_export_encrypted_to_storage">Ekspor terenkripsi ke media penyimpanan?</string>
   <string name="ExportFragment_warning_this_will_export_the_plaintext_contents">Peringatan, ini akan mengekspor konten plaintext PeSankita Anda ke media penyimpanan.</string>
+  <string name="ExportFragment_warning_this_will_export_the_encrypted_contents">Peringatan, ini akan mengekspor konten terenkripsi PeSankita Anda ke media penyimpanan.</string>
   <string name="ExportFragment_cancel">Batal</string>
   <string name="ExportFragment_exporting">Mengekspor</string>
   <string name="ExportFragment_exporting_plaintext_to_storage">Mengekspor plaintext ke media penyimpanan...</string>
+  <string name="ExportFragment_exporting_encrypted_to_storage">Mengekspor terenkripsi ke media penyimpanan...</string>
   <string name="ExportFragment_error_unable_to_write_to_storage">Galat, tidak bisa menyimpan ke penyimpanan.</string>
   <string name="ExportFragment_error_while_writing_to_storage">Galat saat menyimpan ke penyimpanan.</string>
   <string name="ExportFragment_export_successful">Ekspor berhasil.</string>
@@ -303,7 +306,7 @@ telah mengimpor basis data sistem SMS, hal ini akan menyebabkan adanya duplikasi
   <plurals name="InviteActivity_send_sms_invites">
     <item quantity="other">Kirim %d SMS undangan?</item>
   </plurals>
-  <string name="InviteActivity_lets_switch_to_signal">Ayo pindah ke PeSankita: %1$s</string>
+  <string name="InviteActivity_lets_switch_to_signal">Ayo pakai PeSankita: %1$s</string>
   <string name="InviteActivity_no_app_to_share_to">Sepertinya Anda tidak memiliki aplikasi untuk berbagi.</string>
   <string name="InviteActivity_friends_dont_let_friends_text_unencrypted">Teman tidak membiarkan temannya mengobrol tanpa enkripsi.</string>
   <!--KeyScanningActivity-->
@@ -617,12 +620,14 @@ Diterima pesan pertukaran kunci untuk versi protokol yang tidak valid.
   <string name="database_migration_activity__importing">MENGIMPOR</string>
   <!--database_upgrade_activity-->
   <string name="database_upgrade_activity__updating_database">Memperbarui basis data...</string>
+  <string name="export_fragment__export_encrypted_backup">Expor cadangan terenkripsi</string>
+  <string name="export_fragment__export_an_encrypted_backup_to_the_sd_card">Expor cadangan terenkripsi</string>
   <string name="export_fragment__export_plaintext_backup">Ekspor cadangan plaintext</string>
   <string name="export_fragment__export_a_plaintext_backup_compatible_with">Ekspor cadangan plaintext kompatibel dengan \'SMS Backup &amp; Restore\' ke media penyimpanan</string>
   <string name="import_fragment__import_system_sms_database">Impor basis data SMS sistem</string>
   <string name="import_fragment__import_the_database_from_the_default_system">Impor basis data dari aplikasi bawaan perpesanan sistem</string>
-  <string name="import_fragment__restore_encrypted_backup">Pulihkan cadangan terenkripsi</string>
-  <string name="import_fragment__restore_a_previously_exported_encrypted_signal_backup">Pulihkan cadangan terenkripsi PeSankita yang sebelumnya diekspor</string>
+  <string name="import_fragment__restore_encrypted_backup">Impor cadangan terenkripsi</string>
+  <string name="import_fragment__restore_a_previously_exported_encrypted_signal_backup">Impor cadangan terenkripsi PeSankita yang sebelumnya diekspor</string>
   <string name="import_fragment__import_plaintext_backup">Impor cadangan plaintext</string>
   <string name="import_fragment__import_a_plaintext_backup_file">Impor cadangan plaintext. Kompatibel dengan \'SMS Backup &amp; Restore.\'</string>
   <!--load_more_header-->

@@ -1,8 +1,10 @@
 package org.thoughtcrime.securesms.util;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
@@ -25,6 +27,7 @@ import org.thoughtcrime.securesms.mms.Slide;
 import org.thoughtcrime.securesms.mms.VideoSlide;
 import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.ExecutionException;
@@ -88,6 +91,34 @@ public class MediaUtil {
     }
 
     return slide;
+  }
+
+  public static String getFilename(Context context, Uri uri) {
+    if (uri == null) return null;
+
+    String filename = null;
+
+    if ("file".equalsIgnoreCase(uri.getScheme())) {
+      File file = new File(uri.getPath());
+      filename = file.getName();
+
+    } else {
+      Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+
+      try {
+        int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+
+        cursor.moveToFirst();
+
+        filename = cursor.getString(nameIndex);
+      } catch (Exception e) {
+        Log.w(TAG, "Error getFilename: " + e.getMessage());
+      } finally {
+        if (cursor != null) cursor.close();
+      }
+    }
+
+    return filename;
   }
 
   public static @Nullable String getMimeType(Context context, Uri uri) {

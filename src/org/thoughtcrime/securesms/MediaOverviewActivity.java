@@ -169,6 +169,7 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
               MediaRecord record = MediaRecord.from(cursor);
               attachments.add(new SaveAttachmentTask.Attachment(record.getAttachment().getDataUri(),
                                                                 record.getContentType(),
+                                                                record.getAttachment().getFilename(),
                                                                 record.getDate()));
             }
 

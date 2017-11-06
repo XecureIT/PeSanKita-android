@@ -12,7 +12,7 @@ import java.io.IOException;
 
 public class PlaintextBackupExporter {
 
-  private static final String FILENAME = "PesanKitaPlaintextBackup.xml";
+  private static final String FILENAME = "PlaintextExport.xml";
 
   public static void exportPlaintextToSd(Context context, MasterSecret masterSecret)
       throws NoExternalStorageException, IOException
@@ -27,7 +27,7 @@ public class PlaintextBackupExporter {
   }
 
   public static File getPlaintextExportFile() {
-    return new File(Environment.getExternalStorageDirectory(), FILENAME);
+    return new File(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator +  "PesanKita" + File.separator + FILENAME);
   }
 
   private static void exportPlaintext(Context context, MasterSecret masterSecret)

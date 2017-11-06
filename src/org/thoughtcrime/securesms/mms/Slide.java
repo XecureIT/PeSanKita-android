@@ -45,6 +45,10 @@ public abstract class Slide {
     return attachment.getContentType();
   }
 
+  public String getFilename() {
+    return attachment.getFilename();
+  }
+
   @Nullable
   public Uri getUri() {
     return attachment.getDataUri();
@@ -114,7 +118,9 @@ public abstract class Slide {
                                                                   boolean  hasThumbnail)
   {
     Optional<String> resolvedType = Optional.fromNullable(MediaUtil.getMimeType(context, uri));
-    return new UriAttachment(uri, hasThumbnail ? uri : null, resolvedType.or(defaultMime), AttachmentDatabase.TRANSFER_PROGRESS_STARTED, size);
+    String filename = MediaUtil.getFilename(context, uri);
+
+    return new UriAttachment(uri, hasThumbnail ? uri : null, resolvedType.or(defaultMime), filename, AttachmentDatabase.TRANSFER_PROGRESS_STARTED, size);
   }
 
   @Override

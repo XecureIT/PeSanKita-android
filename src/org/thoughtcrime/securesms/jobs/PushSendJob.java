@@ -82,9 +82,11 @@ public abstract class PushSendJob extends SendJob {
         try {
           if (attachment.getDataUri() == null || attachment.getSize() == 0) throw new IOException("Assertion failed, outgoing attachment has no data!");
           InputStream is = PartAuthority.getAttachmentStream(context, masterSecret, attachment.getDataUri());
+
           attachments.add(SignalServiceAttachment.newStreamBuilder()
                                                  .withStream(is)
                                                  .withContentType(attachment.getContentType())
+                                                 .withFilename(attachment.getFilename())
                                                  .withLength(attachment.getSize())
                                                  .withListener(new ProgressListener() {
                                                    @Override

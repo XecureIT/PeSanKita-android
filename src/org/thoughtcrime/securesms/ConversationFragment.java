@@ -391,7 +391,7 @@ public class ConversationFragment extends Fragment
         for (Slide slide : message.getSlideDeck().getSlides()) {
           if ((slide.hasImage() || slide.hasVideo() || slide.hasAudio()) && slide.getUri() != null) {
             SaveAttachmentTask saveTask = new SaveAttachmentTask(getActivity(), masterSecret);
-            saveTask.execute(new Attachment(slide.getUri(), slide.getContentType(), message.getDateReceived()));
+            saveTask.execute(new Attachment(slide.getUri(), slide.getContentType(), slide.getFilename(), message.getDateReceived()));
             return;
           }
         }

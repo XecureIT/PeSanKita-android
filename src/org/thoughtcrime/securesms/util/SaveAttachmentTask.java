@@ -82,7 +82,7 @@ public class SaveAttachmentTask extends ProgressDialogAsyncTask<SaveAttachmentTa
 
   private boolean saveAttachment(Context context, MasterSecret masterSecret, Attachment attachment) throws IOException {
     String contentType      = MediaUtil.getCorrectedMimeType(attachment.contentType);
-    File mediaFile          = constructOutputFile(contentType, attachment.date);
+    File mediaFile          = constructOutputFile(contentType, attachment.filename, attachment.date);
     InputStream inputStream = PartAuthority.getAttachmentStream(context, masterSecret, attachment.uri);
 
     if (inputStream == null) {
@@ -124,7 +124,7 @@ public class SaveAttachmentTask extends ProgressDialogAsyncTask<SaveAttachmentTa
     }
   }
 
-  private File constructOutputFile(String contentType, long timestamp) throws IOException {
+  private File constructOutputFile(String contentType, String filename, long timestamp) throws IOException {
     File sdCard = Environment.getExternalStorageDirectory();
     File outputDirectory;
 
@@ -150,6 +150,8 @@ public class SaveAttachmentTask extends ProgressDialogAsyncTask<SaveAttachmentTa
     String            base          = "PesanKita-" + dateFormatter.format(timestamp);
 
     if (extension == null) extension = "attach";
+    if (filename != null && !(filename.trim().isEmpty()) && (filename.indexOf(".") != -1))
+      base = filename.substring(0, filename.indexOf("."));
 
     int i = 0;
     File file = new File(outputDirectory, base + "." + extension);
@@ -163,14 +165,16 @@ public class SaveAttachmentTask extends ProgressDialogAsyncTask<SaveAttachmentTa
   public static class Attachment {
     public Uri    uri;
     public String contentType;
+    public String filename;
     public long   date;
 
-    public Attachment(@NonNull Uri uri, @NonNull String contentType, long date) {
+    public Attachment(@NonNull Uri uri, @NonNull String contentType, String filename, long date) {
       if (uri == null || contentType == null || date < 0) {
         throw new AssertionError("uri, content type, and date must all be specified");
       }
       this.uri         = uri;
       this.contentType = contentType;
+      this.filename    = filename;
       this.date        = date;
     }
   }

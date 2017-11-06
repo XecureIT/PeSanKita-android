@@ -64,6 +64,7 @@ public class MmsSmsDatabase extends Database {
                                               AttachmentDatabase.DATA,
                                               AttachmentDatabase.THUMBNAIL,
                                               AttachmentDatabase.CONTENT_TYPE,
+                                              AttachmentDatabase.FILE_NAME,
                                               AttachmentDatabase.CONTENT_LOCATION,
                                               AttachmentDatabase.CONTENT_DISPOSITION,
                                               AttachmentDatabase.NAME,
@@ -156,6 +157,7 @@ public class MmsSmsDatabase extends Database {
                               AttachmentDatabase.DATA,
                               AttachmentDatabase.THUMBNAIL,
                               AttachmentDatabase.CONTENT_TYPE,
+                              AttachmentDatabase.FILE_NAME,
                               AttachmentDatabase.CONTENT_LOCATION,
                               AttachmentDatabase.CONTENT_DISPOSITION,
                               AttachmentDatabase.NAME,
@@ -182,6 +184,7 @@ public class MmsSmsDatabase extends Database {
                               AttachmentDatabase.DATA,
                               AttachmentDatabase.THUMBNAIL,
                               AttachmentDatabase.CONTENT_TYPE,
+                              AttachmentDatabase.FILE_NAME,
                               AttachmentDatabase.CONTENT_LOCATION,
                               AttachmentDatabase.CONTENT_DISPOSITION,
                               AttachmentDatabase.NAME,
@@ -234,6 +237,7 @@ public class MmsSmsDatabase extends Database {
     mmsColumnsPresent.add(AttachmentDatabase.DATA);
     mmsColumnsPresent.add(AttachmentDatabase.THUMBNAIL);
     mmsColumnsPresent.add(AttachmentDatabase.CONTENT_TYPE);
+    mmsColumnsPresent.add(AttachmentDatabase.FILE_NAME);
     mmsColumnsPresent.add(AttachmentDatabase.CONTENT_LOCATION);
     mmsColumnsPresent.add(AttachmentDatabase.CONTENT_DISPOSITION);
     mmsColumnsPresent.add(AttachmentDatabase.NAME);

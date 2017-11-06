@@ -58,6 +58,7 @@ public class ContactSelectionListFragment extends    Fragment
   public final static String DISPLAY_MODE = "display_mode";
   public final static String MULTI_SELECT = "multi_select";
   public final static String REFRESHABLE  = "refreshable";
+  public final static String PRE_SELECT  = "pre_select";
 
 //  public final static int DISPLAY_MODE_ALL        = ContactsCursorLoader.MODE_ALL;
   public final static int DISPLAY_MODE_PUSH_ONLY  = ContactsCursorLoader.MODE_PUSH_ONLY;
@@ -124,10 +125,13 @@ public class ContactSelectionListFragment extends    Fragment
   }
 
   private void initializeCursor() {
+    List<String> numbers = getActivity().getIntent().getStringArrayListExtra(PRE_SELECT);
+
     ContactSelectionListAdapter adapter = new ContactSelectionListAdapter(getActivity(),
                                                                           null,
                                                                           new ListClickListener(),
-                                                                          isMulti());
+                                                                          isMulti(),
+                                                                          numbers);
     selectedContacts = adapter.getSelectedContacts();
     recyclerView.setAdapter(adapter);
     recyclerView.addItemDecoration(new StickyHeaderDecoration(adapter, true, true));

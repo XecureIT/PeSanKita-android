@@ -42,6 +42,7 @@ import org.thoughtcrime.securesms.database.CursorRecyclerViewAdapter;
 import org.thoughtcrime.securesms.util.Util;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -62,6 +63,7 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
   private final LayoutInflater    li;
   private final TypedArray        drawables;
   private final ItemClickListener clickListener;
+  private final List<String>      numbers;
 
   private final HashMap<Long, String> selectedContacts = new HashMap<>();
 
@@ -92,13 +94,15 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
   public ContactSelectionListAdapter(@NonNull  Context context,
                                      @Nullable Cursor cursor,
                                      @Nullable ItemClickListener clickListener,
-                                     boolean multiSelect)
+                                     boolean multiSelect,
+                                     List<String> numbers)
   {
     super(context, cursor);
     this.li           = LayoutInflater.from(context);
     this.drawables    = context.obtainStyledAttributes(STYLE_ATTRIBUTES);
     this.multiSelect  = multiSelect;
     this.clickListener = clickListener;
+    this.numbers = numbers;
   }
 
   @Override
@@ -127,9 +131,12 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
     int color = (contactType == ContactsDatabase.PUSH_TYPE) ? drawables.getColor(0, 0xa0000000) :
                 drawables.getColor(1, 0xff000000);
 
+    boolean preSelected = numbers != null && numbers.contains(number);
+
     viewHolder.getView().unbind();
     viewHolder.getView().set(id, contactType, name, number, labelText, color, multiSelect);
-    viewHolder.getView().setChecked(selectedContacts.containsKey(id));
+    viewHolder.getView().setChecked(preSelected || selectedContacts.containsKey(id));
+    viewHolder.getView().setEnabled(!preSelected);
   }
 
   @Override

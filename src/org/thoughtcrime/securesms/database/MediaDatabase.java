@@ -13,6 +13,7 @@ public class MediaDatabase extends Database {
 
     private final static String MEDIA_QUERY = "SELECT " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_TYPE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FILE_NAME + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL_ASPECT_RATIO + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.UNIQUE_ID + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.MMS_ID + ", "
@@ -51,6 +52,7 @@ public class MediaDatabase extends Database {
     private final boolean      hasData;
     private final boolean      hasThumbnail;
     private final String       contentType;
+    private final String       filename;
     private final String       address;
     private final long         date;
     private final int          transferState;
@@ -58,7 +60,7 @@ public class MediaDatabase extends Database {
 
     private MediaRecord(AttachmentId attachmentId, long mmsId,
                         boolean hasData, boolean hasThumbnail,
-                        String contentType, String address, long date,
+                        String contentType, String filename, String address, long date,
                         int transferState, long size)
     {
       this.attachmentId  = attachmentId;
@@ -66,6 +68,7 @@ public class MediaDatabase extends Database {
       this.hasData       = hasData;
       this.hasThumbnail  = hasThumbnail;
       this.contentType   = contentType;
+      this.filename      = filename;
       this.address       = address;
       this.date          = date;
       this.transferState = transferState;
@@ -89,6 +92,7 @@ public class MediaDatabase extends Database {
                              !cursor.isNull(cursor.getColumnIndexOrThrow(AttachmentDatabase.DATA)),
                              !cursor.isNull(cursor.getColumnIndexOrThrow(AttachmentDatabase.THUMBNAIL)),
                              cursor.getString(cursor.getColumnIndexOrThrow(AttachmentDatabase.CONTENT_TYPE)),
+                             cursor.getString(cursor.getColumnIndexOrThrow(AttachmentDatabase.FILE_NAME)),
                              cursor.getString(cursor.getColumnIndexOrThrow(MmsDatabase.ADDRESS)),
                              date,
                              cursor.getInt(cursor.getColumnIndexOrThrow(AttachmentDatabase.TRANSFER_STATE)),
@@ -96,7 +100,7 @@ public class MediaDatabase extends Database {
     }
 
     public Attachment getAttachment() {
-      return new DatabaseAttachment(attachmentId, mmsId, hasData, hasThumbnail, contentType, transferState, size, null, null, null);
+      return new DatabaseAttachment(attachmentId, mmsId, hasData, hasThumbnail, contentType, filename, transferState, size, null, null, null);
     }
 
     public String getContentType() {

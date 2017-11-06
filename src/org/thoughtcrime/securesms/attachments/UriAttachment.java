@@ -10,13 +10,13 @@ public class UriAttachment extends Attachment {
   private final @Nullable Uri thumbnailUri;
 
   public UriAttachment(@NonNull Uri uri, @NonNull String contentType, int transferState, long size) {
-    this(uri, uri, contentType, transferState, size);
+    this(uri, uri, contentType, null, transferState, size);
   }
 
   public UriAttachment(@NonNull Uri dataUri, @Nullable Uri thumbnailUri,
-                       @NonNull String contentType, int transferState, long size)
+                       @NonNull String contentType, String filename, int transferState, long size)
   {
-    super(contentType, transferState, size, null, null, null);
+    super(contentType, filename, transferState, size, null, null, null);
     this.dataUri      = dataUri;
     this.thumbnailUri = thumbnailUri;
   }

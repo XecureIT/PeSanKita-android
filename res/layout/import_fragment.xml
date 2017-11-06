@@ -18,7 +18,8 @@
                   android:layout_height="wrap_content"
                   android:background="?import_export_item_card_background"
                   android:focusable="true"
-                  android:orientation="vertical">
+                  android:orientation="vertical"
+                  android:visibility="gone">
 
         <LinearLayout android:orientation="horizontal"
                       android:layout_width="wrap_content"

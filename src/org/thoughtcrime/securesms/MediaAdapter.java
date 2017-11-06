@@ -91,6 +91,7 @@ public class MediaAdapter extends CursorRecyclerViewAdapter<ViewHolder> {
         Intent intent = new Intent(getContext(), MediaPreviewActivity.class);
         intent.putExtra(MediaPreviewActivity.DATE_EXTRA, mediaRecord.getDate());
         intent.putExtra(MediaPreviewActivity.SIZE_EXTRA, mediaRecord.getAttachment().getSize());
+        intent.putExtra(MediaPreviewActivity.NAME_EXTRA, mediaRecord.getAttachment().getFilename());
         intent.putExtra(MediaPreviewActivity.THREAD_ID_EXTRA, threadId);
 
         if (!TextUtils.isEmpty(mediaRecord.getAddress())) {
