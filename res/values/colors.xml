@@ -55,4 +55,9 @@
 
     <color name="sticker_selected_color">#8cf437</color>
     <color name="transparent">#00FFFFFF</color>
+
+    <color name="reply_item_text_light">#333333</color>
+    <color name="reply_item_text_dark">#858585</color>
+    <color name="reply_item_background_light">#f2f2f2</color>
+    <color name="reply_item_background_dark">#181818</color>
 </resources>

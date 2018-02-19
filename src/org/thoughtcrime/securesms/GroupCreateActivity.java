@@ -122,7 +122,8 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
   private Bitmap       avatarBmp;
   private ImageButton  contactsButton;
   private RecipientsEditor recipientsEditor;
-    private TextView countValue;
+  private TextView countValue;
+  public int updateGroup = 1;
 
   @NonNull private Optional<GroupData> groupToUpdate = Optional.absent();
 
@@ -257,6 +258,9 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     menu.clear();
 
     inflater.inflate(R.menu.group_create, menu);
+    if(updateGroup == 0){
+      menu.findItem(R.id.menu_create_group).setVisible(false);
+    }
     super.onPrepareOptionsMenu(menu);
     return true;
   }
@@ -745,6 +749,9 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
           activity.avatar.setEnabled(true);
           activity.recipientsEditor.setVisibility(View.VISIBLE);
           activity.contactsButton.setVisibility(View.VISIBLE);
+        } else {
+          activity.updateGroup = 0;
+          activity.invalidateOptionsMenu();
         }
       }
       else if(!group.isPresent()) {

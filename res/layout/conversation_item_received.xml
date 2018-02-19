@@ -49,6 +49,8 @@
                       android:orientation="vertical"
                       tools:backgroundTint="@color/blue_900">
 
+            <include layout="@layout/conversation_item_reply"/>
+
             <ViewStub
                     android:id="@+id/image_view_stub"
                     android:layout="@layout/conversation_item_received_thumbnail"

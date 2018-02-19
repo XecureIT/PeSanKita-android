@@ -123,6 +123,7 @@ public class PushMediaSendJob extends PushSendJob implements InjectableType {
       List<SignalServiceAttachment> attachmentStreams = getAttachmentsFor(masterSecret, scaledAttachments);
       SignalServiceDataMessage      mediaMessage      = SignalServiceDataMessage.newBuilder()
                                                                                 .withBody(message.getBody())
+                                                                                .withReplyBody(message.getReplyBody())
                                                                                 .withAttachments(attachmentStreams)
                                                                                 .withTimestamp(message.getSentTimeMillis())
                                                                                 .withExpiration((int)(message.getExpiresIn() / 1000))

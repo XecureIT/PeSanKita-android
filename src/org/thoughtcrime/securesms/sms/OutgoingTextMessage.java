@@ -7,6 +7,7 @@ public class OutgoingTextMessage {
 
   private final Recipients recipients;
   private final String     message;
+  private final String     replyBody;
   private final int        subscriptionId;
   private final long       expiresIn;
 
@@ -14,18 +15,28 @@ public class OutgoingTextMessage {
     this(recipients, message, 0, subscriptionId);
   }
 
-  public OutgoingTextMessage(Recipients recipients, String message, long expiresIn, int subscriptionId) {
+  public OutgoingTextMessage(Recipients recipients, String message, String replyBody, long expiresIn, int subscriptionId) {
     this.recipients     = recipients;
     this.message        = message;
+    this.replyBody      = replyBody;
     this.expiresIn      = expiresIn;
     this.subscriptionId = subscriptionId;
   }
 
-  protected OutgoingTextMessage(OutgoingTextMessage base, String body) {
+  public OutgoingTextMessage(Recipients recipients, String message, long expiresIn, int subscriptionId) {
+    this(recipients, message, null, expiresIn, subscriptionId);
+  }
+
+  protected OutgoingTextMessage(OutgoingTextMessage base, String body, String replyBody) {
     this.recipients     = base.getRecipients();
     this.subscriptionId = base.getSubscriptionId();
     this.expiresIn      = base.getExpiresIn();
     this.message        = body;
+    this.replyBody      = replyBody;
+  }
+
+  protected OutgoingTextMessage(OutgoingTextMessage base, String body) {
+    this(base, body, null);
   }
 
   public long getExpiresIn() {
@@ -38,6 +49,10 @@ public class OutgoingTextMessage {
 
   public String getMessageBody() {
     return message;
+  }
+
+  public String getReplyBody() {
+    return replyBody;
   }
 
   public Recipients getRecipients() {
@@ -62,17 +77,21 @@ public class OutgoingTextMessage {
 
   public static OutgoingTextMessage from(SmsMessageRecord record) {
     if (record.isSecure()) {
-      return new OutgoingEncryptedMessage(record.getRecipients(), record.getBody().getBody(), record.getExpiresIn());
+      return new OutgoingEncryptedMessage(record.getRecipients(), record.getBody().getBody(), record.getBody().getReplyBody(), record.getExpiresIn());
     } else if (record.isKeyExchange()) {
       return new OutgoingKeyExchangeMessage(record.getRecipients(), record.getBody().getBody());
     } else if (record.isEndSession()) {
       return new OutgoingEndSessionMessage(new OutgoingTextMessage(record.getRecipients(), record.getBody().getBody(), 0, -1));
     } else {
-      return new OutgoingTextMessage(record.getRecipients(), record.getBody().getBody(), record.getExpiresIn(), record.getSubscriptionId());
+      return new OutgoingTextMessage(record.getRecipients(), record.getBody().getBody(), record.getBody().getReplyBody(), record.getExpiresIn(), record.getSubscriptionId());
     }
   }
 
+  public OutgoingTextMessage withBody(String body, String replyBody) {
+    return new OutgoingTextMessage(this, body, replyBody);
+  }
+
   public OutgoingTextMessage withBody(String body) {
-    return new OutgoingTextMessage(this, body);
+    return this.withBody(body, null);
   }
 }

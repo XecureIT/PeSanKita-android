@@ -109,6 +109,7 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
       SignalServiceDataMessage   textSecureMessage = SignalServiceDataMessage.newBuilder()
                                                                              .withTimestamp(message.getDateSent())
                                                                              .withBody(message.getBody().getBody())
+                                                                             .withReplyBody(message.getBody().getReplyBody())
                                                                              .withExpiration((int)(message.getExpiresIn() / 1000))
                                                                              .asEndSessionMessage(message.isEndSession())
                                                                              .build();

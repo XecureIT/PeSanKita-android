@@ -114,7 +114,14 @@
     <attr name="menu_copy_icon" format="reference" />
     <attr name="menu_info_icon" format="reference" />
     <attr name="menu_forward_icon" format="reference" />
+    <attr name="menu_reply_icon" format="reference" />
     <attr name="menu_save_icon" format="reference" />
+
+    <attr name="preview_reply_icon" format="reference" />
+    <attr name="preview_close_icon" format="reference" />
+    <attr name="preview_bubble" format="reference" />
+    <attr name="reply_item_background" format="reference|color" />
+    <attr name="reply_item_text" format="reference|color" />
 
     <attr name="pref_ic_sms_mms" format="reference" />
     <attr name="pref_ic_notifications" format="reference" />

@@ -141,6 +141,7 @@
     <string name="ConversationActivity_you_will_once_again_be_able_to_receive_messages_and_calls_from_this_contact">You will once again be able to receive messages from this contact.</string>
     <string name="ConversationActivity_unblock">Unblock</string>
     <string name="ConversationActivity_attachment_exceeds_size_limits">Attachment exceeds size limits for the type of message you\'re sending.</string>
+    <string name="ConversationActivity_attachment_gif_blocked">Gif not supported.</string>
     <string name="ConversationActivity_quick_camera_unavailable">Camera unavailable</string>
     <string name="ConversationActivity_unable_to_record_audio">Unable to record audio!</string>
     <string name="ConversationActivity_error_sending_voice_message">Error sending voice message</string>
@@ -986,7 +987,7 @@
     </string>
     <string name="registration_progress_activity__android_version">Android version.</string>
     <string name="registration_progress_activity__android_version_limit">
-        Make sure your android version not below 4.4.4
+        Make sure your android version not below 5.0
     </string>
     <string name="registration_progress_activity__signal_will_now_automatically_verify_your_number_with_a_confirmation_sms_message">
         PeSankita will now automatically verify your number with a confirmation SMS message.
@@ -1213,6 +1214,7 @@
     <string name="conversation_callable_secure__menu_call">PeSankita call</string>
 
     <!-- conversation_context -->
+    <string name="conversation_context__menu_reply">Reply message</string>
     <string name="conversation_context__menu_message_details">Message details</string>
     <string name="conversation_context__menu_copy_text">Copy text</string>
     <string name="conversation_context__menu_delete_message">Delete message</string>

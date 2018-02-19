@@ -103,6 +103,7 @@ import org.thoughtcrime.securesms.database.MmsSmsColumns.Types;
 import org.thoughtcrime.securesms.database.RecipientPreferenceDatabase.RecipientPreferenceEvent;
 import org.thoughtcrime.securesms.database.RecipientPreferenceDatabase.RecipientsPreferences;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
+import org.thoughtcrime.securesms.database.model.Reply;
 import org.thoughtcrime.securesms.jobs.MultiDeviceBlockedUpdateJob;
 import org.thoughtcrime.securesms.mms.AttachmentManager;
 import org.thoughtcrime.securesms.mms.AttachmentManager.MediaType;
@@ -1387,6 +1388,14 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     return rawText;
   }
 
+  private String getReplyBody() {
+    Reply reply = fragment.getReply();
+    if (reply.getType() > 0) {
+      return reply.toString();
+    }
+    return null;
+  }
+
   private MediaConstraints getCurrentMediaConstraints() {
     return sendButton.getSelectedTransport().getType() == Type.TEXTSECURE
            ? MediaConstraints.PUSH_CONSTRAINTS
@@ -1485,6 +1494,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
           OutgoingMediaMessage outgoingMessage = new OutgoingMediaMessage(recipients,
                                                                           slideDeck,
                                                                           body,
+                                                                          getReplyBody(),
                                                                           System.currentTimeMillis(),
                                                                           subscriptionId,
                                                                           expiresIn,
@@ -1496,6 +1506,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
 
     attachmentManager.clear();
     composeText.setText("");
+    fragment.closeReplyPreview();
 
     new AsyncTask<OutgoingMediaMessage, Void, Long>() {
       @Override
@@ -1520,12 +1531,13 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     OutgoingTextMessage message;
 
     if (isSecureText && !forceSms) {
-      message = new OutgoingEncryptedMessage(recipients, getMessage(), expiresIn);
+      message = new OutgoingEncryptedMessage(recipients, getMessage(), getReplyBody(), expiresIn);
     } else {
-      message = new OutgoingTextMessage(recipients, getMessage(), expiresIn, subscriptionId);
+      message = new OutgoingTextMessage(recipients, getMessage(), getReplyBody(), expiresIn, subscriptionId);
     }
 
     this.composeText.setText("");
+    fragment.closeReplyPreview();
 
     new AsyncTask<OutgoingTextMessage, Void, Long>() {
       @Override

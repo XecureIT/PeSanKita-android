@@ -47,6 +47,7 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -58,6 +59,8 @@ import org.thoughtcrime.securesms.database.MmsSmsDatabase;
 import org.thoughtcrime.securesms.database.loaders.ConversationLoader;
 import org.thoughtcrime.securesms.database.model.MediaMmsMessageRecord;
 import org.thoughtcrime.securesms.database.model.MessageRecord;
+import org.thoughtcrime.securesms.database.model.Reply;
+import org.thoughtcrime.securesms.mms.PartAuthority;
 import org.thoughtcrime.securesms.mms.Slide;
 import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
@@ -65,15 +68,22 @@ import org.thoughtcrime.securesms.sms.MessageSender;
 import org.thoughtcrime.securesms.util.SaveAttachmentTask;
 import org.thoughtcrime.securesms.util.SaveAttachmentTask.Attachment;
 import org.thoughtcrime.securesms.util.StickyHeaderDecoration;
+import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.ViewUtil;
 import org.thoughtcrime.securesms.util.task.ProgressDialogAsyncTask;
+import org.whispersystems.jobqueue.util.Base64;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
+import ws.com.google.android.mms.ContentType;
 
 public class ConversationFragment extends Fragment
   implements LoaderManager.LoaderCallbacks<Cursor>
@@ -100,6 +110,16 @@ public class ConversationFragment extends Fragment
   private View                        composeDivider;
   private View                        scrollToBottomButton;
   private TextView                    scrollDateHeader;
+  private View                        replyContainer;
+  private ImageView                   replyImage;
+  private TextView                    replyNumber;
+  private TextView                    replyText;
+  private ImageView                   replyClose;
+  private Reply reply                 = new Reply();
+
+  public Reply getReply() {
+    return reply;
+  }
 
   @Override
   public void onCreate(Bundle icicle) {
@@ -115,11 +135,22 @@ public class ConversationFragment extends Fragment
     composeDivider       = ViewUtil.findById(view, R.id.compose_divider);
     scrollToBottomButton = ViewUtil.findById(view, R.id.scroll_to_bottom_button);
     scrollDateHeader     = ViewUtil.findById(view, R.id.scroll_date_header);
+    replyContainer       = ViewUtil.findById(view, R.id.reply_preview_container);
+    replyImage           = ViewUtil.findById(view, R.id.reply_image);
+    replyNumber          = ViewUtil.findById(view, R.id.reply_number);
+    replyText            = ViewUtil.findById(view, R.id.reply_text);
+    replyClose           = ViewUtil.findById(view, R.id.reply_close);
 
     scrollToBottomButton.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(final View view) {
         scrollToBottom();
+      }
+    });
+    replyClose.setOnClickListener(new OnClickListener() {
+      @Override
+      public void onClick(View v) {
+        closeReplyPreview();
       }
     });
 
@@ -225,6 +256,7 @@ public class ConversationFragment extends Fragment
       menu.findItem(R.id.menu_context_details).setVisible(false);
       menu.findItem(R.id.menu_context_save_attachment).setVisible(false);
       menu.findItem(R.id.menu_context_resend).setVisible(false);
+      menu.findItem(R.id.menu_context_reply).setVisible(false);
       menu.findItem(R.id.menu_context_copy).setVisible(!actionMessage);
     } else {
       MessageRecord messageRecord = messageRecords.iterator().next();
@@ -237,6 +269,7 @@ public class ConversationFragment extends Fragment
 
       menu.findItem(R.id.menu_context_forward).setVisible(!actionMessage);
       menu.findItem(R.id.menu_context_details).setVisible(!actionMessage);
+      menu.findItem(R.id.menu_context_reply).setVisible(!actionMessage);
       menu.findItem(R.id.menu_context_copy).setVisible(!actionMessage);
     }
   }
@@ -402,6 +435,103 @@ public class ConversationFragment extends Fragment
                        Toast.LENGTH_LONG).show();
       }
     });
+  }
+
+  private void handleReplyMessage(MessageRecord messageRecord) {
+    closeReplyPreview();
+
+    if (messageRecord.isOutgoing())
+      reply.setNumber(TextSecurePreferences.getLocalNumber(getContext()));
+    else
+      reply.setNumber(messageRecord.getIndividualRecipient().getNumber());
+
+    reply.setText(messageRecord.getDisplayBody().toString());
+    reply.setType(reply.REPLY_TYPE_TEXT);
+
+    setReplyMedia(messageRecord);
+    showReplyPreview();
+  }
+
+  public void closeReplyPreview() {
+    reply.clear();
+
+    replyContainer.setVisibility(View.GONE);
+    replyImage.setVisibility(View.GONE);
+    replyNumber.setText("");
+    replyText.setText("");
+    setMarginBottom(list, 0);
+  }
+
+  public void showReplyPreview() {
+    List<String> numbers = new LinkedList<>();
+    numbers.add(reply.getNumber());
+
+    Recipients recipients = RecipientFactory.getRecipientsFromStrings(getContext(), numbers,true);
+
+    replyContainer.setVisibility(View.VISIBLE);
+    replyNumber.setText(recipients.toShortString());
+    replyText.setText(reply.getText());
+
+    Reply.setReplyThumbnail(getContext(), reply, replyImage);
+
+    if (TextUtils.isEmpty(reply.getText())) {
+      if (Reply.REPLY_TYPE_IMAGE == reply.getType())
+        replyText.setText(getContext().getString(R.string.attachment_type_selector__image));
+      if (Reply.REPLY_TYPE_VIDEO == reply.getType())
+        replyText.setText(getContext().getString(R.string.attachment_type_selector__video));
+      if (Reply.REPLY_TYPE_AUDIO == reply.getType())
+        replyText.setText(getContext().getString(R.string.attachment_type_selector__audio));
+      if (Reply.REPLY_TYPE_FILE == reply.getType())
+        replyText.setText(getContext().getString(R.string.attachment_type_selector__file));
+    }
+
+    int bottomMargin = replyContainer.getHeight() + 20;
+    setMarginBottom(list, bottomMargin);
+    setMarginBottom(scrollToBottomButton, bottomMargin + 10);
+  }
+
+  private void setReplyMedia(MessageRecord messageRecord) {
+    if (messageRecord.isMms()) {
+      MediaMmsMessageRecord mediaMessage = (MediaMmsMessageRecord) messageRecord;
+      if (mediaMessage.containsMediaSlide()) {
+        Slide slide = mediaMessage.getSlideDeck().getSlides().get(0);
+
+        if (slide.getContentType() != null) {
+          if (ContentType.isImageType(slide.getContentType())) {
+            try {
+              InputStream inputStream = PartAuthority.getAttachmentStream(getContext(), masterSecret, slide.getThumbnailUri());
+              reply.setThumbnail(encodeToBase64String(inputStream));
+            } catch (Exception e) {
+              Log.w(TAG, "Cannot decode base64 to image: " + e.getMessage());
+            }
+            reply.setType(Reply.REPLY_TYPE_IMAGE);
+          }
+          if (ContentType.isVideoType(slide.getContentType()))
+            reply.setType(Reply.REPLY_TYPE_VIDEO);
+          if (ContentType.isAudioType(slide.getContentType()))
+            reply.setType(Reply.REPLY_TYPE_AUDIO);
+          if (ContentType.isFileType(slide.getContentType()))
+            reply.setType(Reply.REPLY_TYPE_FILE);
+        }
+      }
+    }
+  }
+
+  private String encodeToBase64String(InputStream inputStream) throws IOException {
+    byte[] buffer = new byte[8192];
+    int bytesRead;
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+    while ((bytesRead = inputStream.read(buffer)) != -1) {
+      output.write(buffer, 0, bytesRead);
+    }
+
+    return Base64.encodeToString(output.toByteArray(), Base64.DEFAULT);
+  }
+
+  public static void setMarginBottom(View v, int bottom) {
+    ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+    params.setMargins(params.leftMargin, params.topMargin, params.rightMargin, bottom);
   }
 
   @Override
@@ -626,6 +756,10 @@ public class ConversationFragment extends Fragment
           return true;
         case R.id.menu_context_save_attachment:
           handleSaveAttachment((MediaMmsMessageRecord)getSelectedMessageRecord());
+          actionMode.finish();
+          return true;
+        case R.id.menu_context_reply:
+          handleReplyMessage(getSelectedMessageRecord());
           actionMode.finish();
           return true;
       }

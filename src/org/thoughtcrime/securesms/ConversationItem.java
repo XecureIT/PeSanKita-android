@@ -36,6 +36,7 @@ import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -55,6 +56,7 @@ import org.thoughtcrime.securesms.database.documents.IdentityKeyMismatch;
 import org.thoughtcrime.securesms.database.model.MediaMmsMessageRecord;
 import org.thoughtcrime.securesms.database.model.MessageRecord;
 import org.thoughtcrime.securesms.database.model.MmsMessageRecord;
+import org.thoughtcrime.securesms.database.model.Reply;
 import org.thoughtcrime.securesms.jobs.MmsDownloadJob;
 import org.thoughtcrime.securesms.jobs.MmsSendJob;
 import org.thoughtcrime.securesms.jobs.SmsSendJob;
@@ -62,6 +64,7 @@ import org.thoughtcrime.securesms.mms.PartAuthority;
 import org.thoughtcrime.securesms.mms.Slide;
 import org.thoughtcrime.securesms.mms.SlideClickListener;
 import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.service.ExpiringMessageManager;
 import org.thoughtcrime.securesms.util.DateUtils;
@@ -74,6 +77,7 @@ import org.thoughtcrime.securesms.util.views.Stub;
 import org.whispersystems.libsignal.util.guava.Optional;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -107,6 +111,10 @@ public class ConversationItem extends LinearLayout
   private AvatarImageView    contactPhoto;
   private DeliveryStatusView deliveryStatusIndicator;
   private AlertView          alertView;
+  private RelativeLayout     replyContainer;
+  private ImageView          replyImage;
+  private TextView           replyNumber;
+  private TextView           replyText;
 
   private @NonNull  Set<MessageRecord>  batchSelected = new HashSet<>();
   private @Nullable Recipients          conversationRecipients;
@@ -154,11 +162,16 @@ public class ConversationItem extends LinearLayout
     this.mediaThumbnailStub      = new Stub<>((ViewStub) findViewById(R.id.image_view_stub));
     this.audioViewStub           = new Stub<>((ViewStub) findViewById(R.id.audio_view_stub));
     this.expirationTimer         = (ExpirationTimerView) findViewById(R.id.expiration_indicator);
+    this.replyContainer          = (RelativeLayout)     findViewById(R.id.reply_container);
+    this.replyImage              = (ImageView)          findViewById(R.id.reply_image);
+    this.replyNumber             = (TextView)           findViewById(R.id.reply_number);
+    this.replyText               = (TextView)           findViewById(R.id.reply_text);
 
     setOnClickListener(new ClickListener(null));
 
     bodyText.setOnLongClickListener(passthroughClickListener);
     bodyText.setOnClickListener(passthroughClickListener);
+    replyContainer.setOnClickListener(passthroughClickListener);
   }
 
   @Override
@@ -182,6 +195,7 @@ public class ConversationItem extends LinearLayout
     setMediaAttributes(messageRecord);
     setInteractionState(messageRecord);
     setBodyText(messageRecord);
+    setReplyResource(messageRecord);
     setBubbleState(messageRecord, recipient);
     setStatusIcons(messageRecord);
     setContactPhoto(recipient);
@@ -215,6 +229,33 @@ public class ConversationItem extends LinearLayout
   }
 
   /// MessageRecord Attribute Parsers
+
+  private void setReplyResource(MessageRecord messageRecord) {
+    replyContainer.setVisibility(View.GONE);
+    Reply reply = Reply.parseReplyBody(messageRecord.getDisplayReplyBody());
+    if (reply != null) {
+      List<String> numbers = new LinkedList<>();
+      numbers.add(reply.getNumber());
+      Recipients recipients = RecipientFactory.getRecipientsFromStrings(context, numbers, true);
+
+      replyContainer.setVisibility(View.VISIBLE);
+      replyNumber.setText(recipients.toShortString());
+      replyText.setText(reply.getText());
+
+      Reply.setReplyThumbnail(context, reply, replyImage);
+
+      if (TextUtils.isEmpty(reply.getText())) {
+        if (Reply.REPLY_TYPE_IMAGE == reply.getType())
+          replyText.setText(getContext().getString(R.string.attachment_type_selector__image));
+        if (Reply.REPLY_TYPE_VIDEO == reply.getType())
+          replyText.setText(getContext().getString(R.string.attachment_type_selector__video));
+        if (Reply.REPLY_TYPE_AUDIO == reply.getType())
+          replyText.setText(getContext().getString(R.string.attachment_type_selector__audio));
+        if (Reply.REPLY_TYPE_FILE == reply.getType())
+          replyText.setText(getContext().getString(R.string.attachment_type_selector__file));
+      }
+    }
+  }
 
   private void setBubbleState(MessageRecord messageRecord, Recipient recipient) {
     if (messageRecord.isOutgoing()) {

@@ -442,6 +442,7 @@ public class PushDecryptJob extends ContextJob {
                                                                  message.getExpiresInSeconds() * 1000, false,
                                                                  Optional.fromNullable(envelope.getRelay()),
                                                                  message.getBody(),
+                                                                 message.getReplyBody(),
                                                                  message.getGroupInfo(),
                                                                  message.getAttachments());
 
@@ -549,6 +550,7 @@ public class PushDecryptJob extends ContextJob {
   {
     EncryptingSmsDatabase database   = DatabaseFactory.getEncryptingSmsDatabase(context);
     String                body       = message.getBody().isPresent() ? message.getBody().get() : "";
+    String                replyBody  = message.getReplyBody().isPresent() ? message.getReplyBody().get() : null;
     Recipients            recipients = getMessageDestination(envelope, message);
 
     if (message.getExpiresInSeconds() != recipients.getExpireMessages()) {
@@ -562,11 +564,11 @@ public class PushDecryptJob extends ContextJob {
     } else {
       IncomingTextMessage textMessage = new IncomingTextMessage(envelope.getSource(),
                                                                 envelope.getSourceDevice(),
-                                                                message.getTimestamp(), body,
+                                                                message.getTimestamp(), body, replyBody,
                                                                 message.getGroupInfo(),
                                                                 message.getExpiresInSeconds() * 1000);
 
-      textMessage = new IncomingEncryptedMessage(textMessage, body);
+      textMessage = new IncomingEncryptedMessage(textMessage, body, replyBody);
       Optional<InsertResult> insertResult = database.insertMessageInbox(masterSecret, textMessage);
 
       if (insertResult.isPresent()) threadId = insertResult.get().getThreadId();
@@ -588,8 +590,9 @@ public class PushDecryptJob extends ContextJob {
     EncryptingSmsDatabase database            = DatabaseFactory.getEncryptingSmsDatabase(context);
     Recipients            recipients          = getSyncMessageDestination(message);
     String                body                = message.getMessage().getBody().or("");
+    String                replyBody           = message.getMessage().getReplyBody().orNull();
     long                  expiresInMillis     = message.getMessage().getExpiresInSeconds() * 1000;
-    OutgoingTextMessage   outgoingTextMessage = new OutgoingTextMessage(recipients, body, expiresInMillis, -1);
+    OutgoingTextMessage   outgoingTextMessage = new OutgoingTextMessage(recipients, body, replyBody, expiresInMillis, -1);
 
     if (recipients.getExpireMessages() != message.getMessage().getExpiresInSeconds()) {
       handleSynchronizeSentExpirationUpdate(masterSecret, message, Optional.<Long>absent());

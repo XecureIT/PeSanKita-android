@@ -75,7 +75,8 @@ public class DatabaseFactory {
   private static final int INTRODUCED_EXPIRE_MESSAGES_VERSION              = 28;
   private static final int INTRODUCED_LAST_SEEN                            = 29;
   private static final int INTRODUCED_GROUP_MGMT_VERSION                   = 30;
-  private static final int DATABASE_VERSION                                = 30;
+  private static final int INTRODUCED_REPLY_BODY_VERSION                   = 31;
+  private static final int DATABASE_VERSION                                = 31;
 
   private static final String DATABASE_NAME    = "messages.db";
   private static final Object lock             = new Object();
@@ -839,6 +840,11 @@ public class DatabaseFactory {
       if (oldVersion < INTRODUCED_GROUP_MGMT_VERSION) {
         db.execSQL("ALTER TABLE groups ADD COLUMN owner TEXT DEFAULT NULL");
         db.execSQL("ALTER TABLE groups ADD COLUMN admins TEXT DEFAULT NULL");
+      }
+
+      if (oldVersion < INTRODUCED_REPLY_BODY_VERSION) {
+        db.execSQL("ALTER TABLE sms ADD COLUMN reply_body TEXT DEFAULT NULL");
+        db.execSQL("ALTER TABLE mms ADD COLUMN reply_body TEXT DEFAULT NULL");
       }
 
       db.setTransactionSuccessful();

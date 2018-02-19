@@ -113,7 +113,7 @@ public class MmsDatabase extends MessagingDatabase {
     RECEIPT_COUNT + " INTEGER DEFAULT 0, " + MISMATCHED_IDENTITIES + " TEXT DEFAULT NULL, "     +
     NETWORK_FAILURE + " TEXT DEFAULT NULL," + "d_rpt" + " INTEGER, " +
     SUBSCRIPTION_ID + " INTEGER DEFAULT -1, " + EXPIRES_IN + " INTEGER DEFAULT 0, " +
-    EXPIRE_STARTED + " INTEGER DEFAULT 0);";
+    EXPIRE_STARTED + " INTEGER DEFAULT 0, " + REPLY_BODY + " TEXT DEFAULT NULL);";
 
   public static final String[] CREATE_INDEXS = {
     "CREATE INDEX IF NOT EXISTS mms_thread_id_index ON " + TABLE_NAME + " (" + THREAD_ID + ");",
@@ -133,7 +133,7 @@ public class MmsDatabase extends MessagingDatabase {
       MESSAGE_SIZE, STATUS, TRANSACTION_ID,
       BODY, PART_COUNT, ADDRESS, ADDRESS_DEVICE_ID,
       RECEIPT_COUNT, MISMATCHED_IDENTITIES, NETWORK_FAILURE, SUBSCRIPTION_ID,
-      EXPIRES_IN, EXPIRE_STARTED,
+      EXPIRES_IN, EXPIRE_STARTED, REPLY_BODY,
       AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " AS " + AttachmentDatabase.ATTACHMENT_ID_ALIAS,
       AttachmentDatabase.UNIQUE_ID,
       AttachmentDatabase.MMS_ID,
@@ -618,6 +618,7 @@ public class MmsDatabase extends MessagingDatabase {
       if (cursor != null && cursor.moveToNext()) {
         long             outboxType     = cursor.getLong(cursor.getColumnIndexOrThrow(MESSAGE_BOX));
         String           messageText    = cursor.getString(cursor.getColumnIndexOrThrow(BODY));
+        String           replyText      = cursor.getString(cursor.getColumnIndexOrThrow(REPLY_BODY));
         long             timestamp      = cursor.getLong(cursor.getColumnIndexOrThrow(NORMALIZED_DATE_SENT));
         int              subscriptionId = cursor.getInt(cursor.getColumnIndexOrThrow(SUBSCRIPTION_ID));
         long             expiresIn      = cursor.getLong(cursor.getColumnIndexOrThrow(EXPIRES_IN));
@@ -625,6 +626,7 @@ public class MmsDatabase extends MessagingDatabase {
         MmsAddresses     addresses      = addr.getAddressesForId(messageId);
         List<String>     destinations   = new LinkedList<>();
         String           body           = getDecryptedBody(masterSecret, messageText, outboxType);
+        String           replyBody      = getDecryptedBody(masterSecret, replyText, outboxType);
 
         destinations.addAll(addresses.getBcc());
         destinations.addAll(addresses.getCc());
@@ -638,7 +640,7 @@ public class MmsDatabase extends MessagingDatabase {
           return new OutgoingExpirationUpdateMessage(recipients, timestamp, expiresIn);
         }
 
-        OutgoingMediaMessage message = new OutgoingMediaMessage(recipients, body, attachments, timestamp, subscriptionId, expiresIn,
+        OutgoingMediaMessage message = new OutgoingMediaMessage(recipients, body, replyBody, attachments, timestamp, subscriptionId, expiresIn,
                                                                 !addresses.getBcc().isEmpty() ? ThreadDatabase.DistributionTypes.BROADCAST :
                                                                                                 ThreadDatabase.DistributionTypes.DEFAULT);
         if (Types.isSecureType(outboxType)) {
@@ -689,6 +691,7 @@ public class MmsDatabase extends MessagingDatabase {
       return insertMediaMessage(new MasterSecretUnion(masterSecret),
                                 MmsAddresses.forTo(request.getRecipients().toNumberStringList(false)),
                                 request.getBody(),
+                                request.getReplyBody(),
                                 attachments,
                                 contentValues);
     } catch (NoSuchMessageException e) {
@@ -738,8 +741,8 @@ public class MmsDatabase extends MessagingDatabase {
     }
 
     long messageId = insertMediaMessage(masterSecret, retrieved.getAddresses(),
-                                        retrieved.getBody(), retrieved.getAttachments(),
-                                        contentValues);
+                                        retrieved.getBody(), retrieved.getReplyBody(),
+                                        retrieved.getAttachments(), contentValues);
 
     if (!Types.isExpirationTimerUpdate(mailbox)) {
       DatabaseFactory.getThreadDatabase(context).setUnread(threadId);
@@ -910,7 +913,7 @@ public class MmsDatabase extends MessagingDatabase {
 
     contentValues.remove(ADDRESS);
 
-    long messageId = insertMediaMessage(masterSecret, addresses, message.getBody(),
+    long messageId = insertMediaMessage(masterSecret, addresses, message.getBody(), message.getReplyBody(),
                                         message.getAttachments(), contentValues);
 
     DatabaseFactory.getThreadDatabase(context).setLastSeen(threadId);
@@ -947,6 +950,7 @@ public class MmsDatabase extends MessagingDatabase {
   private long insertMediaMessage(@NonNull MasterSecretUnion masterSecret,
                                   @NonNull MmsAddresses addresses,
                                   @Nullable String body,
+                                  @Nullable String replyBody,
                                   @NonNull List<Attachment> attachments,
                                   @NonNull ContentValues contentValues)
       throws MmsException
@@ -960,6 +964,9 @@ public class MmsDatabase extends MessagingDatabase {
     {
       if (!TextUtils.isEmpty(body)) {
         contentValues.put(BODY, getEncryptedBody(masterSecret, body));
+        if (!TextUtils.isEmpty(replyBody)) {
+          contentValues.put(REPLY_BODY, getEncryptedBody(masterSecret, replyBody));
+        }
       }
     }
 
@@ -1239,15 +1246,22 @@ public class MmsDatabase extends MessagingDatabase {
 
     private DisplayRecord.Body getBody(Cursor cursor) {
       try {
-        String body = cursor.getString(cursor.getColumnIndexOrThrow(MmsDatabase.BODY));
-        long box    = cursor.getLong(cursor.getColumnIndexOrThrow(MmsDatabase.MESSAGE_BOX));
+        String body      = cursor.getString(cursor.getColumnIndexOrThrow(MmsDatabase.BODY));
+        String replyBody = cursor.getString(cursor.getColumnIndexOrThrow(MmsDatabase.REPLY_BODY));
+        long box         = cursor.getLong(cursor.getColumnIndexOrThrow(MmsDatabase.MESSAGE_BOX));
 
         if (!TextUtils.isEmpty(body) && masterCipher != null && Types.isSymmetricEncryption(box)) {
-          return new DisplayRecord.Body(masterCipher.decryptBody(body), true);
+          String plainReplyText = null;
+          try {
+            plainReplyText = TextUtils.isEmpty(replyBody) ? null : masterCipher.decryptBody(replyBody);
+          } catch (InvalidMessageException e) {
+            Log.w(TAG, "Cannot decrypt replyBody");
+          }
+          return new DisplayRecord.Body(masterCipher.decryptBody(body), plainReplyText, true);
         } else if (!TextUtils.isEmpty(body) && masterCipher == null && Types.isSymmetricEncryption(box)) {
-          return new DisplayRecord.Body(body, false);
+          return new DisplayRecord.Body(body, replyBody, false);
         } else if (!TextUtils.isEmpty(body) && Types.isAsymmetricEncryption(box)) {
-          return new DisplayRecord.Body(body, false);
+          return new DisplayRecord.Body(body, replyBody, false);
         } else {
           return new DisplayRecord.Body(body == null ? "" : body, true);
         }

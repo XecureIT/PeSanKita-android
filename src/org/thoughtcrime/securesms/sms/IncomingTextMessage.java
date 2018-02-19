@@ -26,6 +26,7 @@ public class IncomingTextMessage implements Parcelable {
   };
 
   private final String  message;
+  private final String  replyBody;
   private final String  sender;
   private final int     senderDeviceId;
   private final int     protocol;
@@ -40,6 +41,7 @@ public class IncomingTextMessage implements Parcelable {
 
   public IncomingTextMessage(SmsMessage message, int subscriptionId) {
     this.message              = message.getDisplayMessageBody();
+    this.replyBody            = null;
     this.sender               = message.getDisplayOriginatingAddress();
     this.senderDeviceId       = SignalServiceAddress.DEFAULT_DEVICE_ID;
     this.protocol             = message.getProtocolIdentifier();
@@ -54,10 +56,11 @@ public class IncomingTextMessage implements Parcelable {
   }
 
   public IncomingTextMessage(String sender, int senderDeviceId, long sentTimestampMillis,
-                             String encodedBody, Optional<SignalServiceGroup> group,
+                             String encodedBody, String replyBody, Optional<SignalServiceGroup> group,
                              long expiresInMillis)
   {
     this.message              = encodedBody;
+    this.replyBody            = replyBody;
     this.sender               = sender;
     this.senderDeviceId       = senderDeviceId;
     this.protocol             = 31337;
@@ -76,8 +79,16 @@ public class IncomingTextMessage implements Parcelable {
     }
   }
 
+  public IncomingTextMessage(String sender, int senderDeviceId, long sentTimestampMillis,
+                             String encodedBody, Optional<SignalServiceGroup> group,
+                             long expiresInMillis)
+  {
+    this(sender, senderDeviceId, sentTimestampMillis, encodedBody, null, group, expiresInMillis);
+  }
+
   public IncomingTextMessage(Parcel in) {
     this.message              = in.readString();
+    this.replyBody            = in.readString();
     this.sender               = in.readString();
     this.senderDeviceId       = in.readInt();
     this.protocol             = in.readInt();
@@ -91,8 +102,9 @@ public class IncomingTextMessage implements Parcelable {
     this.expiresInMillis      = in.readLong();
   }
 
-  public IncomingTextMessage(IncomingTextMessage base, String newBody) {
+  public IncomingTextMessage(IncomingTextMessage base, String newBody, String replyBody) {
     this.message              = newBody;
+    this.replyBody            = replyBody;
     this.sender               = base.getSender();
     this.senderDeviceId       = base.getSenderDeviceId();
     this.protocol             = base.getProtocol();
@@ -106,6 +118,10 @@ public class IncomingTextMessage implements Parcelable {
     this.expiresInMillis      = base.getExpiresIn();
   }
 
+  public IncomingTextMessage(IncomingTextMessage base, String newBody) {
+    this(base, newBody, null);
+  }
+
   public IncomingTextMessage(List<IncomingTextMessage> fragments) {
     StringBuilder body = new StringBuilder();
 
@@ -114,6 +130,7 @@ public class IncomingTextMessage implements Parcelable {
     }
 
     this.message              = body.toString();
+    this.replyBody            = null;
     this.sender               = fragments.get(0).getSender();
     this.senderDeviceId       = fragments.get(0).getSenderDeviceId();
     this.protocol             = fragments.get(0).getProtocol();
@@ -130,6 +147,7 @@ public class IncomingTextMessage implements Parcelable {
   protected IncomingTextMessage(String sender, String groupId)
   {
     this.message              = "";
+    this.replyBody            = null;
     this.sender               = sender;
     this.senderDeviceId       = SignalServiceAddress.DEFAULT_DEVICE_ID;
     this.protocol             = 31338;
@@ -159,12 +177,20 @@ public class IncomingTextMessage implements Parcelable {
     return pseudoSubject;
   }
 
+  public String getReplyBody() {
+    return replyBody;
+  }
+
   public String getMessageBody() {
     return message;
   }
 
+  public IncomingTextMessage withMessageBody(String message, String replyBody) {
+    return new IncomingTextMessage(this, message, replyBody);
+  }
+
   public IncomingTextMessage withMessageBody(String message) {
-    return new IncomingTextMessage(this, message);
+    return this.withMessageBody(message, this.getReplyBody());
   }
 
   public String getSender() {
@@ -235,6 +261,7 @@ public class IncomingTextMessage implements Parcelable {
   @Override
   public void writeToParcel(Parcel out, int flags) {
     out.writeString(message);
+    out.writeString(replyBody);
     out.writeString(sender);
     out.writeInt(senderDeviceId);
     out.writeInt(protocol);

@@ -79,7 +79,7 @@ public class SmsDatabase extends MessagingDatabase {
     STATUS + " INTEGER DEFAULT -1," + TYPE + " INTEGER, " + REPLY_PATH_PRESENT + " INTEGER, " +
     RECEIPT_COUNT + " INTEGER DEFAULT 0," + SUBJECT + " TEXT, " + BODY + " TEXT, " +
     MISMATCHED_IDENTITIES + " TEXT DEFAULT NULL, " + SERVICE_CENTER + " TEXT, " + SUBSCRIPTION_ID + " INTEGER DEFAULT -1, " +
-    EXPIRES_IN + " INTEGER DEFAULT 0, " + EXPIRE_STARTED + " INTEGER DEFAULT 0);";
+    EXPIRES_IN + " INTEGER DEFAULT 0, " + EXPIRE_STARTED + " INTEGER DEFAULT 0, " + REPLY_BODY + " TEXT DEFAULT NULL);";
 
   public static final String[] CREATE_INDEXS = {
     "CREATE INDEX IF NOT EXISTS sms_thread_id_index ON " + TABLE_NAME + " (" + THREAD_ID + ");",
@@ -96,7 +96,7 @@ public class SmsDatabase extends MessagingDatabase {
       DATE_SENT + " AS " + NORMALIZED_DATE_SENT,
       PROTOCOL, READ, STATUS, TYPE,
       REPLY_PATH_PRESENT, SUBJECT, BODY, SERVICE_CENTER, RECEIPT_COUNT,
-      MISMATCHED_IDENTITIES, SUBSCRIPTION_ID, EXPIRES_IN, EXPIRE_STARTED
+      MISMATCHED_IDENTITIES, SUBSCRIPTION_ID, EXPIRES_IN, EXPIRE_STARTED, REPLY_BODY
   };
 
   private static final EarlyReceiptCache earlyReceiptCache = new EarlyReceiptCache();
@@ -434,6 +434,7 @@ public class SmsDatabase extends MessagingDatabase {
     contentValues.put(PROTOCOL, 31337);
     contentValues.put(READ, 0);
     contentValues.put(BODY, record.getBody().getBody());
+    contentValues.put(REPLY_BODY, record.getBody().getReplyBody());
     contentValues.put(THREAD_ID, record.getThreadId());
     contentValues.put(EXPIRES_IN, record.getExpiresIn());
 
@@ -550,6 +551,7 @@ public class SmsDatabase extends MessagingDatabase {
     values.put(REPLY_PATH_PRESENT, message.isReplyPathPresent());
     values.put(SERVICE_CENTER, message.getServiceCenterAddress());
     values.put(BODY, message.getMessageBody());
+    values.put(REPLY_BODY, message.getReplyBody());
     values.put(TYPE, type);
     values.put(THREAD_ID, threadId);
 
@@ -597,6 +599,7 @@ public class SmsDatabase extends MessagingDatabase {
     contentValues.put(ADDRESS, PhoneNumberUtils.formatNumber(address));
     contentValues.put(THREAD_ID, threadId);
     contentValues.put(BODY, message.getMessageBody());
+    contentValues.put(REPLY_BODY, message.getReplyBody());
     contentValues.put(DATE_RECEIVED, System.currentTimeMillis());
     contentValues.put(DATE_SENT, date);
     contentValues.put(READ, 1);
@@ -742,6 +745,7 @@ public class SmsDatabase extends MessagingDatabase {
                                                                       REPLY_PATH_PRESENT + ", " +
                                                                       SUBJECT + ", " +
                                                                       BODY + ", " +
+                                                                      REPLY_BODY + ", " +
                                                                       SERVICE_CENTER +
                                                                       ", " + THREAD_ID + ") " +
                                      " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -835,11 +839,12 @@ public class SmsDatabase extends MessagingDatabase {
     protected DisplayRecord.Body getBody(Cursor cursor) {
       long type   = cursor.getLong(cursor.getColumnIndexOrThrow(SmsDatabase.TYPE));
       String body = cursor.getString(cursor.getColumnIndexOrThrow(SmsDatabase.BODY));
+      String replyBody = cursor.getString(cursor.getColumnIndexOrThrow(SmsDatabase.REPLY_BODY));
 
       if (Types.isSymmetricEncryption(type)) {
-        return new DisplayRecord.Body(body, false);
+        return new DisplayRecord.Body(body, replyBody,false);
       } else {
-        return new DisplayRecord.Body(body, true);
+        return new DisplayRecord.Body(body, replyBody,true);
       }
     }
 

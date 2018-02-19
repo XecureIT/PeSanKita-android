@@ -121,6 +121,10 @@ public abstract class MessageRecord extends DisplayRecord {
     return new SpannableString(getBody().getBody());
   }
 
+  public String getDisplayReplyBody() {
+    return getBody().getReplyBody();
+  }
+
   public long getId() {
     return id;
   }

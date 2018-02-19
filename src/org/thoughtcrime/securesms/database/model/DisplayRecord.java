@@ -158,10 +158,18 @@ public abstract class DisplayRecord {
 
   public static class Body {
     private final String body;
+    private final String replyBody;
     private final boolean plaintext;
+
+    public Body(String body, String replyBody, boolean plaintext) {
+      this.body      = body;
+      this.replyBody = replyBody;
+      this.plaintext = plaintext;
+    }
 
     public Body(String body, boolean plaintext) {
       this.body      = body;
+      this.replyBody = null;
       this.plaintext = plaintext;
     }
 
@@ -171,6 +179,10 @@ public abstract class DisplayRecord {
 
     public String getBody() {
       return body == null ? "" : body;
+    }
+
+    public String getReplyBody() {
+      return replyBody;
     }
   }
 }

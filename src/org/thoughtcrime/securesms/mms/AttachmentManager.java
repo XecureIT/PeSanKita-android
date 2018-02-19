@@ -224,6 +224,8 @@ public class AttachmentManager {
           Toast.makeText(context,
                          R.string.ConversationActivity_sorry_there_was_an_error_setting_your_attachment,
                          Toast.LENGTH_SHORT).show();
+        } else if (MediaUtil.isGif(slide.getContentType())) {
+          Toast.makeText(context, R.string.ConversationActivity_attachment_gif_blocked, Toast.LENGTH_SHORT).show();
         } else if (!areConstraintsSatisfied(context, masterSecret, slide, constraints)) {
           attachmentViewStub.get().setVisibility(View.GONE);
           Toast.makeText(context,

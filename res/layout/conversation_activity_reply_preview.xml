@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/reply_preview_container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?preview_bubble"
+    android:clipChildren="false"
+    android:padding="8dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginLeft="5dp"
+    android:layout_gravity="bottom"
+    android:layout_alignParentBottom="true"
+    android:layout_alignParentLeft="true"
+    android:layout_alignParentStart="true"
+    android:visibility="invisible">
+
+    <ImageView
+        android:id="@+id/reply_icon"
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        android:layout_marginRight="5dp"
+        android:layout_marginTop="5dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:adjustViewBounds="true"
+        android:clickable="false"
+        android:longClickable="false"
+        android:scaleType="fitCenter"
+        android:alpha="0.7"
+        android:src="?preview_reply_icon"/>
+
+    <ImageView
+        android:id="@+id/reply_image"
+        android:layout_width="35dp"
+        android:layout_height="35dp"
+        android:layout_marginRight="8dp"
+        android:layout_alignBottom="@+id/reply_text"
+        android:layout_toEndOf="@+id/reply_icon"
+        android:adjustViewBounds="true"
+        android:clickable="false"
+        android:contentDescription="@string/conversation_item__mms_image_description"
+        android:longClickable="false"
+        android:scaleType="fitCenter"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/reply_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Replied Number"
+        android:textSize="12dp"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/reply_image"/>
+
+    <org.thoughtcrime.securesms.components.emoji.EmojiTextView
+        android:id="@+id/reply_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/reply_number"
+        android:layout_toEndOf="@+id/reply_image"
+        android:ellipsize="end"
+        android:textSize="10dp"
+        android:maxLength="50"
+        android:maxLines="1"
+        android:text="Replied Text"/>
+
+    <ImageView
+        android:id="@+id/reply_close"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:adjustViewBounds="true"
+        android:clickable="false"
+        android:longClickable="false"
+        android:scaleType="fitCenter"
+        android:src="?preview_close_icon"/>
+
+</RelativeLayout>

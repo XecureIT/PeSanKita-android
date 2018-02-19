@@ -20,6 +20,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.Pair;
 
@@ -69,10 +70,22 @@ public class EncryptingSmsDatabase extends SmsDatabase {
     long type = Types.BASE_SENDING_TYPE;
 
     if (masterSecret.getMasterSecret().isPresent()) {
-      message = message.withBody(getEncryptedBody(masterSecret.getMasterSecret().get(), message.getMessageBody()));
+      if (message.getReplyBody() != null) {
+        message = message.withBody(getEncryptedBody(masterSecret.getMasterSecret().get(), message.getMessageBody()),
+            getEncryptedBody(masterSecret.getMasterSecret().get(), message.getReplyBody()));
+      } else {
+        message = message.withBody(getEncryptedBody(masterSecret.getMasterSecret().get(), message.getMessageBody()));
+      }
+
       type   |= Types.ENCRYPTION_SYMMETRIC_BIT;
     } else {
-      message = message.withBody(getAsymmetricEncryptedBody(masterSecret.getAsymmetricMasterSecret().get(), message.getMessageBody()));
+      if (message.getReplyBody() != null) {
+        message = message.withBody(getAsymmetricEncryptedBody(masterSecret.getAsymmetricMasterSecret().get(), message.getMessageBody()),
+            getAsymmetricEncryptedBody(masterSecret.getAsymmetricMasterSecret().get(), message.getReplyBody()));
+      } else {
+        message = message.withBody(getAsymmetricEncryptedBody(masterSecret.getAsymmetricMasterSecret().get(), message.getMessageBody()));
+      }
+
       type   |= Types.ENCRYPTION_ASYMMETRIC_BIT;
     }
 
@@ -93,8 +106,14 @@ public class EncryptingSmsDatabase extends SmsDatabase {
                                                     @NonNull IncomingTextMessage message)
   {
     long type = Types.BASE_INBOX_TYPE | Types.ENCRYPTION_SYMMETRIC_BIT;
-
-    message = message.withMessageBody(getEncryptedBody(masterSecret, message.getMessageBody()));
+    if(message.getReplyBody() != null) {
+      message = message.withMessageBody(
+          getEncryptedBody(masterSecret, message.getMessageBody()),
+          getEncryptedBody(masterSecret, message.getReplyBody()));
+    } else {
+      message = message.withMessageBody(
+          getEncryptedBody(masterSecret, message.getMessageBody()));
+    }
 
     return insertMessageInbox(message, type);
   }
@@ -104,7 +123,9 @@ public class EncryptingSmsDatabase extends SmsDatabase {
   {
     long type = Types.BASE_INBOX_TYPE | Types.ENCRYPTION_ASYMMETRIC_BIT;
 
-    message = message.withMessageBody(getAsymmetricEncryptedBody(masterSecret, message.getMessageBody()));
+    message = message.withMessageBody(
+            getAsymmetricEncryptedBody(masterSecret, message.getMessageBody()),
+            getAsymmetricEncryptedBody(masterSecret, message.getReplyBody()));
 
     return insertMessageInbox(message, type);
   }
@@ -181,6 +202,7 @@ public class EncryptingSmsDatabase extends SmsDatabase {
     protected DisplayRecord.Body getBody(Cursor cursor) {
       long type         = cursor.getLong(cursor.getColumnIndexOrThrow(SmsDatabase.TYPE));
       String ciphertext = cursor.getString(cursor.getColumnIndexOrThrow(SmsDatabase.BODY));
+      String cipherReplyText = cursor.getString(cursor.getColumnIndexOrThrow(SmsDatabase.REPLY_BODY));
 
       if (ciphertext == null) {
         return new DisplayRecord.Body("", true);
@@ -190,15 +212,20 @@ public class EncryptingSmsDatabase extends SmsDatabase {
         if (SmsDatabase.Types.isSymmetricEncryption(type)) {
           String plaintext = plaintextCache.get(ciphertext);
 
-          if (plaintext != null)
-            return new DisplayRecord.Body(plaintext, true);
+          if (plaintext == null) {
+            plaintext = masterCipher.decryptBody(ciphertext);
+            plaintextCache.put(ciphertext, plaintext);
+          }
 
-          plaintext = masterCipher.decryptBody(ciphertext);
-
-          plaintextCache.put(ciphertext, plaintext);
-          return new DisplayRecord.Body(plaintext, true);
+          String plainReplyText = null;
+          try {
+            plainReplyText = TextUtils.isEmpty(cipherReplyText) ? null : masterCipher.decryptBody(cipherReplyText);
+          } catch (InvalidMessageException e) {
+            Log.w("EncryptingSmsDatabase", "Cannot decrypt replyBody");
+          }
+          return new DisplayRecord.Body(plaintext, plainReplyText, true);
         } else {
-          return new DisplayRecord.Body(ciphertext, true);
+          return new DisplayRecord.Body(ciphertext, cipherReplyText, true);
         }
       } catch (InvalidMessageException e) {
         Log.w("EncryptingSmsDatabase", e);

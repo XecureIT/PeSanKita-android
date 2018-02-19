@@ -16,6 +16,7 @@ public class IncomingMediaMessage {
 
   private final String  from;
   private final String  body;
+  private final String  replyBody;
   private final String  groupId;
   private final boolean push;
   private final long    sentTimeMillis;
@@ -28,13 +29,14 @@ public class IncomingMediaMessage {
   private final List<Attachment> attachments = new LinkedList<>();
 
   public IncomingMediaMessage(String from, List<String> to, List<String> cc,
-                              String body, long sentTimeMillis,
+                              String body, String replyBody, long sentTimeMillis,
                               List<Attachment> attachments, int subscriptionId,
                               long expiresIn, boolean expirationUpdate)
   {
     this.from             = from;
     this.sentTimeMillis   = sentTimeMillis;
     this.body             = body;
+    this.replyBody        = replyBody;
     this.groupId          = null;
     this.push             = false;
     this.subscriptionId   = subscriptionId;
@@ -44,6 +46,43 @@ public class IncomingMediaMessage {
     this.to.addAll(to);
     this.cc.addAll(cc);
     this.attachments.addAll(attachments);
+  }
+
+  public IncomingMediaMessage(String from, List<String> to, List<String> cc,
+                              String body, long sentTimeMillis,
+                              List<Attachment> attachments, int subscriptionId,
+                              long expiresIn, boolean expirationUpdate)
+  {
+    this(from, to, cc, body, null, sentTimeMillis, attachments, subscriptionId, expiresIn, expirationUpdate);
+  }
+
+  public IncomingMediaMessage(MasterSecretUnion masterSecret,
+                              String from,
+                              String to,
+                              long sentTimeMillis,
+                              int subscriptionId,
+                              long expiresIn,
+                              boolean expirationUpdate,
+                              Optional<String> relay,
+                              Optional<String> body,
+                              Optional<String> replyBody,
+                              Optional<SignalServiceGroup> group,
+                              Optional<List<SignalServiceAttachment>> attachments)
+  {
+    this.push             = true;
+    this.from             = from;
+    this.sentTimeMillis   = sentTimeMillis;
+    this.body             = body.orNull();
+    this.replyBody        = replyBody.orNull();
+    this.subscriptionId   = subscriptionId;
+    this.expiresIn        = expiresIn;
+    this.expirationUpdate = expirationUpdate;
+
+    if (group.isPresent()) this.groupId = GroupUtil.getEncodedId(group.get().getGroupId());
+    else                   this.groupId = null;
+
+    this.to.add(to);
+    this.attachments.addAll(PointerAttachment.forPointers(masterSecret, attachments));
   }
 
   public IncomingMediaMessage(MasterSecretUnion masterSecret,
@@ -58,19 +97,8 @@ public class IncomingMediaMessage {
                               Optional<SignalServiceGroup> group,
                               Optional<List<SignalServiceAttachment>> attachments)
   {
-    this.push             = true;
-    this.from             = from;
-    this.sentTimeMillis   = sentTimeMillis;
-    this.body             = body.orNull();
-    this.subscriptionId   = subscriptionId;
-    this.expiresIn        = expiresIn;
-    this.expirationUpdate = expirationUpdate;
-
-    if (group.isPresent()) this.groupId = GroupUtil.getEncodedId(group.get().getGroupId());
-    else                   this.groupId = null;
-
-    this.to.add(to);
-    this.attachments.addAll(PointerAttachment.forPointers(masterSecret, attachments));
+    this(masterSecret, from, to, sentTimeMillis, subscriptionId, expiresIn, expirationUpdate,
+            relay, body, (Optional.<String>absent()), group, attachments);
   }
 
   public int getSubscriptionId() {
@@ -79,6 +107,10 @@ public class IncomingMediaMessage {
 
   public String getBody() {
     return body;
+  }
+
+  public String getReplyBody() {
+    return replyBody;
   }
 
   public MmsAddresses getAddresses() {

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/reply_container"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="?reply_item_background"
+    android:padding="8dp"
+    android:visibility="gone"
+    android:layout_marginBottom="4dp">
+
+    <ImageView
+        android:id="@+id/reply_image"
+        android:layout_height="35dp"
+        android:layout_width="35dp"
+        android:layout_marginRight="5dp"
+        android:layout_alignBottom="@+id/reply_text"
+        android:adjustViewBounds="true"
+        android:clickable="false"
+        android:longClickable="false"
+        android:contentDescription="@string/conversation_item__mms_image_description"
+        android:scaleType="fitCenter"
+        android:visibility="gone"/>
+
+    <org.thoughtcrime.securesms.components.emoji.EmojiTextView
+        android:id="@+id/reply_number"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reply-Number"
+        android:textSize="@dimen/label_font_size"
+        android:textStyle="bold"
+        android:textColor="?reply_item_text"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/reply_image"/>
+
+    <org.thoughtcrime.securesms.components.emoji.EmojiTextView
+        android:id="@+id/reply_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Reply-Text"
+        android:textColor="?reply_item_text"
+        android:maxLines="3"
+        android:ellipsize="end"
+        android:layout_below="@+id/reply_number"
+        android:layout_toEndOf="@+id/reply_image"/>
+
+</RelativeLayout>
