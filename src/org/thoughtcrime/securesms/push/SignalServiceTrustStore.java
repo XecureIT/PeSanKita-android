@@ -17,7 +17,7 @@ public class SignalServiceTrustStore implements TrustStore {
 
   @Override
   public InputStream getKeyStoreInputStream() {
-    return context.getResources().openRawResource(R.raw.whisper);
+    return context.getResources().openRawResource(R.raw.pesankita);
   }
 
   @Override

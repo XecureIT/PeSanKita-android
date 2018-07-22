@@ -4,8 +4,12 @@ import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
 import android.text.TextUtils;
@@ -15,16 +19,13 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.i18n.phonenumbers.AsYouTypeFormatter;
-import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
@@ -32,6 +33,7 @@ import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.util.Dialogs;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
+import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
 
 /**
@@ -58,8 +60,11 @@ public class RegistrationActivity extends BaseActionBarActivity {
   private Spinner              countrySpinner;
   private TextView             countryCode;
   private TextView             number;
-  private Button               createButton;
-  private Button               skipButton;
+  private TextView             createButton;
+  private TextView             skipButton;
+  private TextView             informationView;
+  private View                 informationToggle;
+  private TextView             informationToggleText;
 
   private MasterSecret masterSecret;
 
@@ -86,16 +91,25 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
   private void initializeResources() {
     this.masterSecret   = getIntent().getParcelableExtra("master_secret");
-    this.countrySpinner = (Spinner)findViewById(R.id.country_spinner);
-    this.countryCode    = (TextView)findViewById(R.id.country_code);
-    this.number         = (TextView)findViewById(R.id.number);
-    this.createButton   = (Button)findViewById(R.id.registerButton);
-    this.skipButton     = (Button)findViewById(R.id.skipButton);
+    this.countrySpinner        = (Spinner) findViewById(R.id.country_spinner);
+    this.countryCode           = (TextView) findViewById(R.id.country_code);
+    this.number                = (TextView) findViewById(R.id.number);
+    this.createButton          = (TextView) findViewById(R.id.registerButton);
+    this.skipButton            = (TextView) findViewById(R.id.skipButton);
+    this.informationView       = (TextView) findViewById(R.id.registration_information);
+    this.informationToggle     =            findViewById(R.id.information_link_container);
+    this.informationToggleText = (TextView) findViewById(R.id.information_label);
+
+    this.createButton.getBackground().setColorFilter(ContextCompat.getColor(this, R.color.signal_primary),
+        PorterDuff.Mode.MULTIPLY);
+    this.skipButton.getBackground().setColorFilter(ContextCompat.getColor(this, R.color.grey_400),
+        PorterDuff.Mode.MULTIPLY);
 
     this.countryCode.addTextChangedListener(new CountryCodeChangedListener());
     this.number.addTextChangedListener(new NumberChangedListener());
     this.createButton.setOnClickListener(new CreateButtonListener());
     this.skipButton.setOnClickListener(new CancelButtonListener());
+    this.informationToggle.setOnClickListener(new InformationToggleListener());
 
     if (getIntent().getBooleanExtra("cancel_button", false)) {
       this.skipButton.setVisibility(View.VISIBLE);
@@ -150,26 +164,17 @@ public class RegistrationActivity extends BaseActionBarActivity {
   }
 
   private void initializeNumber() {
-    PhoneNumberUtil numberUtil  = PhoneNumberUtil.getInstance();
-    String          localNumber = Util.getDeviceE164Number(this);
+    Optional<Phonenumber.PhoneNumber> localNumber = Util.getDeviceNumber(this);
 
-    try {
-      if (!TextUtils.isEmpty(localNumber)) {
-        Phonenumber.PhoneNumber localNumberObject = numberUtil.parse(localNumber, null);
+    if (localNumber.isPresent()) {
+      this.countryCode.setText(String.valueOf(localNumber.get().getCountryCode()));
+      this.number.setText(String.valueOf(localNumber.get().getNationalNumber()));
+    } else {
+      Optional<String> simCountryIso = Util.getSimCountryIso(this);
 
-        if (localNumberObject != null) {
-          this.countryCode.setText(String.valueOf(localNumberObject.getCountryCode()));
-          this.number.setText(String.valueOf(localNumberObject.getNationalNumber()));
-        }
-      } else {
-        String simCountryIso = Util.getSimCountryIso(this);
-
-        if (!TextUtils.isEmpty(simCountryIso)) {
-          this.countryCode.setText(numberUtil.getCountryCodeForRegion(simCountryIso)+"");
-        }
+      if (simCountryIso.isPresent() && !TextUtils.isEmpty(simCountryIso.get())) {
+        this.countryCode.setText(PhoneNumberUtil.getInstance().getCountryCodeForRegion(simCountryIso.get())+"");
       }
-    } catch (NumberParseException npe) {
-      Log.w(TAG, npe);
     }
   }
 
@@ -284,6 +289,16 @@ public class RegistrationActivity extends BaseActionBarActivity {
         case ConnectionResult.SUCCESS:
           return PlayServicesStatus.SUCCESS;
         case ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED:
+          try {
+            ApplicationInfo applicationInfo = getPackageManager().getApplicationInfo("com.google.android.gms", 0);
+
+            if (applicationInfo != null && !applicationInfo.enabled) {
+              return PlayServicesStatus.MISSING;
+            }
+          } catch (PackageManager.NameNotFoundException e) {
+            Log.w(TAG, e);
+          }
+
           return PlayServicesStatus.NEEDS_UPDATE;
         case ConnectionResult.SERVICE_DISABLED:
         case ConnectionResult.SERVICE_MISSING:
@@ -300,7 +315,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
   private class CountryCodeChangedListener implements TextWatcher {
     @Override
     public void afterTextChanged(Editable s) {
-      if (TextUtils.isEmpty(s)) {
+      if (TextUtils.isEmpty(s) || !TextUtils.isDigitsOnly(s)) {
         setCountryDisplay(getString(R.string.RegistrationActivity_select_your_country));
         countryFormatter = null;
         return;
@@ -372,6 +387,19 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
       startActivity(nextIntent);
       finish();
+    }
+  }
+
+  private class InformationToggleListener implements View.OnClickListener {
+    @Override
+    public void onClick(View v) {
+      if (informationView.getVisibility() == View.VISIBLE) {
+        informationView.setVisibility(View.GONE);
+        informationToggleText.setText(R.string.RegistrationActivity_more_information);
+      } else {
+        informationView.setVisibility(View.VISIBLE);
+        informationToggleText.setText(R.string.RegistrationActivity_less_information);
+      }
     }
   }
 }

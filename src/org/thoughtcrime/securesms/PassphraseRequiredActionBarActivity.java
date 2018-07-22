@@ -170,14 +170,14 @@ public abstract class PassphraseRequiredActionBarActivity extends BaseActionBarA
   private int getApplicationState(MasterSecret masterSecret) {
     if (!MasterSecretUtil.isPassphraseInitialized(this)) {
       return STATE_CREATE_PASSPHRASE;
-    //} else if (ExperienceUpgradeActivity.isUpdate(this)) {
-      //return STATE_EXPERIENCE_UPGRADE;
     } else if (masterSecret == null) {
       return STATE_PROMPT_PASSPHRASE;
     } else if (DatabaseUpgradeActivity.isUpdate(this)) {
       return STATE_UPGRADE_DATABASE;
     } else if (!TextSecurePreferences.hasPromptedPushRegistration(this)) {
       return STATE_PROMPT_PUSH_REGISTRATION;
+//  } else if (ExperienceUpgradeActivity.isUpdate(this)) {
+//    return STATE_EXPERIENCE_UPGRADE;
     } else {
       return STATE_NORMAL;
     }
@@ -204,7 +204,11 @@ public abstract class PassphraseRequiredActionBarActivity extends BaseActionBarA
   }
 
   private Intent getPushRegistrationIntent(MasterSecret masterSecret) {
-    return getRoutedIntent(RegistrationActivity.class, getConversationListIntent(), masterSecret);
+    return getRoutedIntent(RegistrationActivity.class, getCreateProfileIntent(masterSecret), masterSecret);
+  }
+
+  private Intent getCreateProfileIntent(MasterSecret masterSecret) {
+    return getRoutedIntent(CreateProfileActivity.class, getConversationListIntent(), masterSecret);
   }
 
   private Intent getRoutedIntent(Class<?> destination, @Nullable Intent nextIntent, @Nullable MasterSecret masterSecret) {

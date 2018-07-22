@@ -101,9 +101,11 @@ public class ViewUtil {
     if (TextUtils.isEmpty(text) || view.getWidth() == 0 || view.getEllipsize() != TruncateAt.END) {
       return text;
     } else {
+      int maxLines = view.getMaxLines();
+      int quantifier = maxLines != -1 ? maxLines : 1;
       return TextUtils.ellipsize(text,
                                  view.getPaint(),
-                                 view.getWidth() - view.getPaddingRight() - view.getPaddingLeft(),
+              (view.getWidth() - view.getPaddingRight() - view.getPaddingLeft()) * quantifier,
                                  TruncateAt.END);
     }
   }

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<org.thoughtcrime.securesms.components.InputAwareLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:background="?application_background2"
+    android:layout_height="match_parent">
+
+    <ScrollView android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:fillViewport="true"
+                android:clickable="false">
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/application_recyler_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            tools:listitem="@layout/applications_item_grid"/>
+    </ScrollView>
+</org.thoughtcrime.securesms.components.InputAwareLayout>

@@ -10,7 +10,7 @@ import org.thoughtcrime.securesms.database.MmsDatabase;
 public class MmsNotificationAttachment extends Attachment {
 
   public MmsNotificationAttachment(int status, long size) {
-    super("application/mms", null, getTransferStateFromStatus(status), size, null, null, null);
+    super("application/mms", getTransferStateFromStatus(status), size, null, null, null, null, null, null, false);
   }
 
   @Nullable
@@ -29,7 +29,7 @@ public class MmsNotificationAttachment extends Attachment {
     if (status == MmsDatabase.Status.DOWNLOAD_INITIALIZED ||
         status == MmsDatabase.Status.DOWNLOAD_NO_CONNECTIVITY)
     {
-      return AttachmentDatabase.TRANSFER_PROGRESS_AUTO_PENDING;
+      return AttachmentDatabase.TRANSFER_PROGRESS_PENDING;
     } else if (status == MmsDatabase.Status.DOWNLOAD_CONNECTING) {
       return AttachmentDatabase.TRANSFER_PROGRESS_STARTED;
     } else {

@@ -22,17 +22,19 @@ import org.thoughtcrime.securesms.PassphraseChangeActivity;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.MasterSecretUtil;
+import org.thoughtcrime.securesms.service.AutoRemoveListener;
 import org.thoughtcrime.securesms.service.KeyCachingService;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 
 import java.util.concurrent.TimeUnit;
 
-public class AppProtectionPreferenceFragment extends PreferenceFragment {
+public class AppProtectionPreferenceFragment extends CorrectedPreferenceFragment {
 
   private static final String PREFERENCE_CATEGORY_BLOCKED = "preference_category_blocked";
 
   private MasterSecret       masterSecret;
   private CheckBoxPreference disablePassphrase;
+  private CheckBoxPreference enableAutoRemove;
 
   @Override
   public void onCreate(Bundle paramBundle) {
@@ -41,15 +43,20 @@ public class AppProtectionPreferenceFragment extends PreferenceFragment {
 
     masterSecret      = getArguments().getParcelable("master_secret");
     disablePassphrase = (CheckBoxPreference) this.findPreference("pref_enable_passphrase_temporary");
+    enableAutoRemove = (CheckBoxPreference) this.findPreference("pref_auto_remove");
 
     this.findPreference(TextSecurePreferences.CHANGE_PASSPHRASE_PREF)
         .setOnPreferenceClickListener(new ChangePassphraseClickListener());
     this.findPreference(TextSecurePreferences.PASSPHRASE_TIMEOUT_INTERVAL_PREF)
         .setOnPreferenceClickListener(new PassphraseIntervalClickListener());
+    this.findPreference(TextSecurePreferences.AUTO_REMOVE_TIMEOUT_INTERVAL_PREF)
+        .setOnPreferenceClickListener(new AutoRemoveIntervalClickListener());
     this.findPreference(PREFERENCE_CATEGORY_BLOCKED)
         .setOnPreferenceClickListener(new BlockedContactsClickListener());
     disablePassphrase
         .setOnPreferenceChangeListener(new DisablePassphraseClickListener());
+    enableAutoRemove
+        .setOnPreferenceChangeListener(new EnableAutoRemoveClickListener());
   }
 
   @Override
@@ -75,8 +82,11 @@ public class AppProtectionPreferenceFragment extends PreferenceFragment {
 
   private void initializeTimeoutSummary() {
     int timeoutMinutes = TextSecurePreferences.getPassphraseTimeoutInterval(getActivity());
+    int timeoutMinutesAutoRemove = TextSecurePreferences.getAutoRemoveTimeoutInterval(getActivity());
     this.findPreference(TextSecurePreferences.PASSPHRASE_TIMEOUT_INTERVAL_PREF)
         .setSummary(getResources().getQuantityString(R.plurals.AppProtectionPreferenceFragment_minutes, timeoutMinutes, timeoutMinutes));
+    this.findPreference(TextSecurePreferences.AUTO_REMOVE_TIMEOUT_INTERVAL_PREF)
+        .setSummary(getResources().getQuantityString(R.plurals.AppProtectionPreferenceFragment_minutes, timeoutMinutesAutoRemove, timeoutMinutesAutoRemove));
   }
 
   private class BlockedContactsClickListener implements Preference.OnPreferenceClickListener {
@@ -163,6 +173,51 @@ public class AppProtectionPreferenceFragment extends PreferenceFragment {
       }
 
       return false;
+    }
+  }
+
+  private class EnableAutoRemoveClickListener implements Preference.OnPreferenceChangeListener {
+
+    @Override
+    public boolean onPreferenceChange(final Preference preference, Object newValue) {
+      if (((CheckBoxPreference)preference).isChecked()) {
+        TextSecurePreferences.setAutoRemovePref(getActivity(), false);
+        ((CheckBoxPreference)preference).setChecked(false);
+      } else {
+        TextSecurePreferences.setAutoRemovePref(getActivity(), true);
+        ((CheckBoxPreference)preference).setChecked(true);
+      }
+
+      AutoRemoveListener.schedule(getActivity());
+      return false;
+    }
+  }
+
+  private class AutoRemoveIntervalClickListener implements Preference.OnPreferenceClickListener, HmsPickerDialogFragment.HmsPickerDialogHandler {
+
+    @Override
+    public boolean onPreferenceClick(Preference preference) {
+      int[]      attributes = {R.attr.app_protect_timeout_picker_color};
+      TypedArray hmsStyle   = getActivity().obtainStyledAttributes(attributes);
+
+      new HmsPickerBuilder().setFragmentManager(getFragmentManager())
+          .setStyleResId(hmsStyle.getResourceId(0, R.style.BetterPickersDialogFragment_Light))
+          .addHmsPickerDialogHandler(this)
+          .show();
+
+      hmsStyle.recycle();
+      return true;
+    }
+
+    @Override
+    public void onDialogHmsSet(int reference, int hours, int minutes, int seconds) {
+      int timeoutMinutes = Math.max((int)TimeUnit.HOURS.toMinutes(hours) +
+          minutes                         +
+          (int)TimeUnit.SECONDS.toMinutes(seconds), 1);
+
+      TextSecurePreferences.setAutoRemoveTimeoutInterval(getActivity(), timeoutMinutes);
+      initializeTimeoutSummary();
+      AutoRemoveListener.schedule(getActivity());
     }
   }
 

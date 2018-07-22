@@ -10,9 +10,11 @@ public abstract class Attachment {
 
   @NonNull
   private final String  contentType;
-  private final String  filename;
   private final int     transferState;
   private final long    size;
+
+  @Nullable
+  private final String fileName;
 
   @Nullable
   private final String  location;
@@ -23,16 +25,28 @@ public abstract class Attachment {
   @Nullable
   private final String relay;
 
-  public Attachment(@NonNull String contentType, String filename, int transferState, long size,
-                    @Nullable String location, @Nullable String key, @Nullable String relay)
+  @Nullable
+  private final byte[] digest;
+
+  @Nullable
+  private final String fastPreflightId;
+
+  private final boolean voiceNote;
+
+  public Attachment(@NonNull String contentType, int transferState, long size, @Nullable String fileName,
+                    @Nullable String location, @Nullable String key, @Nullable String relay,
+                    @Nullable byte[] digest, @Nullable String fastPreflightId, boolean voiceNote)
   {
-    this.contentType   = contentType;
-    this.filename      = filename;
-    this.transferState = transferState;
-    this.size          = size;
-    this.location      = location;
-    this.key           = key;
-    this.relay         = relay;
+    this.contentType     = contentType;
+    this.transferState   = transferState;
+    this.size            = size;
+    this.fileName        = fileName;
+    this.location        = location;
+    this.key             = key;
+    this.relay           = relay;
+    this.digest          = digest;
+    this.fastPreflightId = fastPreflightId;
+    this.voiceNote       = voiceNote;
   }
 
   @Nullable
@@ -54,13 +68,14 @@ public abstract class Attachment {
     return size;
   }
 
+  @Nullable
+  public String getFileName() {
+    return fileName;
+  }
+
   @NonNull
   public String getContentType() {
     return contentType;
-  }
-
-  public String getFilename() {
-    return filename;
   }
 
   @Nullable
@@ -76,5 +91,19 @@ public abstract class Attachment {
   @Nullable
   public String getRelay() {
     return relay;
+  }
+
+  @Nullable
+  public byte[] getDigest() {
+    return digest;
+  }
+
+  @Nullable
+  public String getFastPreflightId() {
+    return fastPreflightId;
+  }
+
+  public boolean isVoiceNote() {
+    return voiceNote;
   }
 }

@@ -70,7 +70,7 @@ public class SelectedRecipientsAdapter extends BaseAdapter {
   public Optional<RecipientWrapper> find(@NonNull String number) {
     RecipientWrapper found = null;
     for (RecipientWrapper wrapper : recipients) {
-      if (wrapper.getRecipient().getNumber().equals(Util.canonicalizeNumber(context, number, number))) {
+      if (wrapper.getRecipient().getAddress().serialize().equals(Util.canonicalizeNumber(context, number, number))) {
         found = wrapper;
         break;
       }
@@ -83,7 +83,7 @@ public class SelectedRecipientsAdapter extends BaseAdapter {
     if (match.isPresent()) {
       recipients.remove(match.get());
       if(adminNumbers.isPresent()) {
-        String number = match.get().getRecipient().getNumber();
+        String number = match.get().getRecipient().getAddress().serialize();
         adminNumbers.get().remove(Util.canonicalizeNumber(context, number, number));
       }
       notifyDataSetChanged();
@@ -147,8 +147,8 @@ public class SelectedRecipientsAdapter extends BaseAdapter {
     ImageView   badge  = (ImageView)   v.findViewById(R.id.badge);
 //    ImageButton delete = (ImageButton) v.findViewById(R.id.delete);
 
-    phone.setText(p.getNumber());
-    if(Util.isOwnNumber(context, p.getNumber())) {
+    phone.setText(p.getAddress().serialize());
+    if(Util.isOwnNumber(context, p.getAddress())) {
       name.setText(R.string.GroupMembersDialog_me);
     } else {
       name.setText(p.getName());
@@ -180,8 +180,8 @@ public class SelectedRecipientsAdapter extends BaseAdapter {
     RecipientWrapper wrapper;
     for (Recipient recipient : recipients) {
       wrapper = new RecipientWrapper(recipient, false, true,
-              isOwnerNumber(recipient.getNumber()), isAdminNumber(recipient.getNumber()));
-      if(Util.isOwnNumber(context, recipient.getNumber())) {
+              isOwnerNumber(recipient.getAddress().serialize()), isAdminNumber(recipient.getAddress().serialize()));
+      if(Util.isOwnNumber(context, recipient.getAddress())) {
         wrapperList.push(wrapper);
       } else {
         wrapperList.add(wrapper);
@@ -193,7 +193,7 @@ public class SelectedRecipientsAdapter extends BaseAdapter {
   private RecipientWrapper updateAdminRecipients(@NonNull String number, boolean admin) {
     RecipientWrapper found = null;
     for (RecipientWrapper wrapper : recipients) {
-      if (wrapper.getRecipient().getNumber().equals(number)) {
+      if (wrapper.getRecipient().getAddress().serialize().equals(number)) {
         found = new RecipientWrapper(
                 wrapper.getRecipient(),
                 wrapper.isModifiable(),
@@ -282,7 +282,7 @@ public class SelectedRecipientsAdapter extends BaseAdapter {
 
     public String getRecipientNameOrNumber() {
       return recipient.getName() == null || recipient.getName().isEmpty() ?
-              recipient.getNumber() : recipient.getName();
+              recipient.getAddress().serialize() : recipient.getName();
     }
   }
 }

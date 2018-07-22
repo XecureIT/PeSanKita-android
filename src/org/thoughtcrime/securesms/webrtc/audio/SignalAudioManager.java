@@ -23,56 +23,51 @@ public class SignalAudioManager {
     private final int       disconnectedSoundId;
 
     public SignalAudioManager(@NonNull Context context) {
-        this.context             = context.getApplicationContext();
-        this.incomingRinger      = new IncomingRinger(context);
-        this.outgoingRinger      = new OutgoingRinger(context);
-        this.soundPool           = new SoundPool(1, AudioManager.STREAM_VOICE_CALL, 0);
+      this.context             = context.getApplicationContext();
+      this.incomingRinger      = new IncomingRinger(context);
+      this.outgoingRinger      = new OutgoingRinger(context);
+      this.soundPool           = new SoundPool(1, AudioManager.STREAM_VOICE_CALL, 0);
 
-        this.connectedSoundId    = this.soundPool.load(context, R.raw.webrtc_completed, 1);
-        this.disconnectedSoundId = this.soundPool.load(context, R.raw.webrtc_disconnected, 1);
+      this.connectedSoundId    = this.soundPool.load(context, R.raw.webrtc_completed, 1);
+      this.disconnectedSoundId = this.soundPool.load(context, R.raw.webrtc_disconnected, 1);
     }
 
     public void initializeAudioForCall() {
-        AudioManager audioManager = ServiceUtil.getAudioManager(context);
+      AudioManager audioManager = ServiceUtil.getAudioManager(context);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            audioManager.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE);
-        } else {
-            audioManager.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-        }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        audioManager.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE);
+      } else {
+        audioManager.requestAudioFocus(null, AudioManager.STREAM_VOICE_CALL, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+      }
     }
 
     public void startIncomingRinger() {
-        AudioManager audioManager = ServiceUtil.getAudioManager(context);
-        boolean      speaker      = !audioManager.isWiredHeadsetOn() && !audioManager.isBluetoothScoOn();
+      AudioManager audioManager = ServiceUtil.getAudioManager(context);
+      boolean      speaker      = !audioManager.isWiredHeadsetOn() && !audioManager.isBluetoothScoOn();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        } else {
-            audioManager.setMode(AudioManager.MODE_IN_CALL);
-        }
+      audioManager.setMode(AudioManager.MODE_RINGTONE);
+      audioManager.setMicrophoneMute(false);
+      audioManager.setSpeakerphoneOn(speaker);
 
-        audioManager.setMicrophoneMute(false);
-        audioManager.setSpeakerphoneOn(speaker);
-
-        incomingRinger.start(speaker);
+      incomingRinger.start();
     }
 
     public void startOutgoingRinger(OutgoingRinger.Type type) {
-        AudioManager audioManager = ServiceUtil.getAudioManager(context);
-        audioManager.setMicrophoneMute(false);
+      AudioManager audioManager = ServiceUtil.getAudioManager(context);
+      audioManager.setMicrophoneMute(false);
 
-        if (type == OutgoingRinger.Type.SONAR) {
-            audioManager.setSpeakerphoneOn(false);
-        }
+      if (type == OutgoingRinger.Type.SONAR) {
+        audioManager.setSpeakerphoneOn(false);
+      }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
-            audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
-        } else {
-            audioManager.setMode(AudioManager.MODE_IN_CALL);
-        }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      } else {
+        audioManager.setMode(AudioManager.MODE_IN_CALL);
+      }
 
-        outgoingRinger.start(type);
+      outgoingRinger.start(type);
     }
 
     public void silenceIncomingRinger() {
@@ -80,36 +75,42 @@ public class SignalAudioManager {
     }
 
     public void startCommunication(boolean preserveSpeakerphone) {
-        AudioManager audioManager = ServiceUtil.getAudioManager(context);
+      AudioManager audioManager = ServiceUtil.getAudioManager(context);
 
-        incomingRinger.stop();
-        outgoingRinger.stop();
+      incomingRinger.stop();
+      outgoingRinger.stop();
 
-        if (!preserveSpeakerphone) {
-            audioManager.setSpeakerphoneOn(false);
-        }
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+        audioManager.setMode(AudioManager.MODE_IN_COMMUNICATION);
+      } else {
+        audioManager.setMode(AudioManager.MODE_IN_CALL);
+      }
 
-        soundPool.play(connectedSoundId, 1.0f, 1.0f, 0, 0, 1.0f);
+      if (!preserveSpeakerphone) {
+        audioManager.setSpeakerphoneOn(false);
+      }
+
+      soundPool.play(connectedSoundId, 1.0f, 1.0f, 0, 0, 1.0f);
     }
 
     public void stop(boolean playDisconnected) {
-        AudioManager audioManager = ServiceUtil.getAudioManager(context);
+      AudioManager audioManager = ServiceUtil.getAudioManager(context);
 
-        incomingRinger.stop();
-        outgoingRinger.stop();
+      incomingRinger.stop();
+      outgoingRinger.stop();
 
-        if (playDisconnected) {
-            soundPool.play(disconnectedSoundId, 1.0f, 1.0f, 0, 0, 1.0f);
-        }
+      if (playDisconnected) {
+          soundPool.play(disconnectedSoundId, 1.0f, 1.0f, 0, 0, 1.0f);
+      }
 
-        if (audioManager.isBluetoothScoOn()) {
-            audioManager.setBluetoothScoOn(false);
-            audioManager.stopBluetoothSco();
-        }
+      if (audioManager.isBluetoothScoOn()) {
+          audioManager.setBluetoothScoOn(false);
+          audioManager.stopBluetoothSco();
+      }
 
-        audioManager.setSpeakerphoneOn(false);
-        audioManager.setMicrophoneMute(false);
-        audioManager.setMode(AudioManager.MODE_NORMAL);
-        audioManager.abandonAudioFocus(null);
+      audioManager.setSpeakerphoneOn(false);
+      audioManager.setMicrophoneMute(false);
+      audioManager.setMode(AudioManager.MODE_NORMAL);
+      audioManager.abandonAudioFocus(null);
     }
 }

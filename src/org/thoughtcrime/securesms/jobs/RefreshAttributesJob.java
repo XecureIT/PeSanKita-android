@@ -11,6 +11,7 @@ import org.whispersystems.signalservice.api.SignalServiceAccountManager;
 import org.whispersystems.signalservice.api.push.exceptions.NetworkFailureException;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
@@ -26,7 +27,7 @@ public class RefreshAttributesJob extends ContextJob implements InjectableType {
     super(context, JobParameters.newBuilder()
                                 .withPersistence()
                                 .withRequirement(new NetworkRequirement(context))
-                                .withWakeLock(true)
+                                .withWakeLock(true, 30, TimeUnit.SECONDS)
                                 .withGroupId(RefreshAttributesJob.class.getName())
                                 .create());
   }
@@ -38,10 +39,9 @@ public class RefreshAttributesJob extends ContextJob implements InjectableType {
   public void onRun() throws IOException {
     String  signalingKey      = TextSecurePreferences.getSignalingKey(context);
     int     registrationId    = TextSecurePreferences.getLocalRegistrationId(context);
-    boolean video             = TextSecurePreferences.isWebrtcCallingEnabled(context);
     boolean fetchesMessages   = TextSecurePreferences.isGcmDisabled(context);
 
-    signalAccountManager.setAccountAttributes(signalingKey, registrationId, true, video || fetchesMessages, fetchesMessages);
+    signalAccountManager.setAccountAttributes(signalingKey, registrationId, fetchesMessages);
   }
 
   @Override

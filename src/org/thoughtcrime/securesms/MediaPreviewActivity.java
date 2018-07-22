@@ -34,14 +34,15 @@ import android.widget.Toast;
 
 import org.thoughtcrime.securesms.components.ZoomingImageView;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.mms.VideoSlide;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.Recipient.RecipientModifiedListener;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 import org.thoughtcrime.securesms.util.DateUtils;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.SaveAttachmentTask;
 import org.thoughtcrime.securesms.util.SaveAttachmentTask.Attachment;
+import org.thoughtcrime.securesms.util.Util;
 import org.thoughtcrime.securesms.video.VideoPlayer;
 
 import java.io.IOException;
@@ -52,11 +53,10 @@ import java.io.IOException;
 public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity implements RecipientModifiedListener {
   private final static String TAG = MediaPreviewActivity.class.getSimpleName();
 
-  public static final String RECIPIENT_EXTRA = "recipient";
+  public static final String ADDRESS_EXTRA   = "address";
   public static final String THREAD_ID_EXTRA = "thread_id";
   public static final String DATE_EXTRA      = "date";
   public static final String SIZE_EXTRA      = "size";
-  public static final String NAME_EXTRA      = "name";
 
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
 
@@ -67,7 +67,6 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
 
   private Uri       mediaUri;
   private String    mediaType;
-  private String    mediaName;
   private Recipient recipient;
   private long      threadId;
   private long      date;
@@ -100,7 +99,7 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
 
   @Override
   public void onModified(Recipient recipient) {
-    initializeActionBar();
+    Util.runOnMain(this::initializeActionBar);
   }
 
   private void initializeActionBar() {
@@ -145,17 +144,16 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
   }
 
   private void initializeResources() {
-    final long recipientId = getIntent().getLongExtra(RECIPIENT_EXTRA, -1);
+    Address address = getIntent().getParcelableExtra(ADDRESS_EXTRA);
 
     mediaUri     = getIntent().getData();
     mediaType    = getIntent().getType();
-    mediaName    = getIntent().getStringExtra(NAME_EXTRA);
     date         = getIntent().getLongExtra(DATE_EXTRA, -1);
     size         = getIntent().getLongExtra(SIZE_EXTRA, 0);
     threadId     = getIntent().getLongExtra(THREAD_ID_EXTRA, -1);
 
-    if (recipientId > -1) {
-      recipient = RecipientFactory.getRecipientForId(this, recipientId, true);
+    if (address != null) {
+      recipient = Recipient.from(this, address, true);
       recipient.addListener(this);
     } else {
       recipient = null;
@@ -179,6 +177,7 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
       } else if (mediaType != null && mediaType.startsWith("video/")) {
         image.setVisibility(View.GONE);
         video.setVisibility(View.VISIBLE);
+        video.setWindow(getWindow());
         video.setVideoSource(masterSecret, new VideoSlide(this, mediaUri, size));
       }
     } catch (IOException e) {
@@ -210,9 +209,9 @@ public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity im
     SaveAttachmentTask.showWarningDialog(this, new DialogInterface.OnClickListener() {
       @Override
       public void onClick(DialogInterface dialogInterface, int i) {
-        SaveAttachmentTask saveTask = new SaveAttachmentTask(MediaPreviewActivity.this, masterSecret);
+        SaveAttachmentTask saveTask = new SaveAttachmentTask(MediaPreviewActivity.this, masterSecret, image);
         long saveDate = (date > 0) ? date : System.currentTimeMillis();
-        saveTask.execute(new Attachment(mediaUri, mediaType, mediaName, saveDate));
+        saveTask.execute(new Attachment(mediaUri, mediaType, saveDate, null));
       }
     });
   }

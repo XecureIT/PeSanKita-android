@@ -25,6 +25,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.MessagingDatabase.SyncMessageId;
 import org.thoughtcrime.securesms.database.model.MessageRecord;
@@ -56,16 +57,21 @@ public class MmsSmsDatabase extends Database {
                                               MmsDatabase.NETWORK_FAILURE,
                                               MmsSmsColumns.SUBSCRIPTION_ID,
                                               MmsSmsColumns.EXPIRES_IN,
-                                              MmsSmsColumns.EXPIRE_STARTED, TRANSPORT,
+                                              MmsSmsColumns.EXPIRE_STARTED,
+                                              MmsSmsColumns.NOTIFIED,
+                                              TRANSPORT,
                                               AttachmentDatabase.ATTACHMENT_ID_ALIAS,
                                               AttachmentDatabase.UNIQUE_ID,
                                               AttachmentDatabase.MMS_ID,
                                               AttachmentDatabase.SIZE,
+                                              AttachmentDatabase.FILE_NAME,
                                               AttachmentDatabase.DATA,
                                               AttachmentDatabase.THUMBNAIL,
                                               AttachmentDatabase.CONTENT_TYPE,
-                                              AttachmentDatabase.FILE_NAME,
                                               AttachmentDatabase.CONTENT_LOCATION,
+                                              AttachmentDatabase.DIGEST,
+                                              AttachmentDatabase.FAST_PREFLIGHT_ID,
+                                              AttachmentDatabase.VOICE_NOTE,
                                               AttachmentDatabase.CONTENT_DISPOSITION,
                                               AttachmentDatabase.NAME,
                                               AttachmentDatabase.TRANSFER_STATE};
@@ -107,13 +113,13 @@ public class MmsSmsDatabase extends Database {
 
   public Cursor getUnread() {
     String order           = MmsSmsColumns.NORMALIZED_DATE_RECEIVED + " ASC";
-    String selection       = MmsSmsColumns.READ + " = 0";
+    String selection       = MmsSmsColumns.READ + " = 0 AND " + MmsSmsColumns.NOTIFIED + " = 0";
 
     return queryTables(PROJECTION, selection, order, null);
   }
 
   public int getUnreadCount(long threadId) {
-    String selection = MmsSmsColumns.READ + " = 0 AND " + MmsSmsColumns.THREAD_ID + " = " + threadId;
+    String selection = MmsSmsColumns.READ + " = 0 AND " + MmsSmsColumns.NOTIFIED + " = 0 AND " + MmsSmsColumns.THREAD_ID + " = " + threadId;
     Cursor cursor    = queryTables(PROJECTION, selection, null, null);
 
     try {
@@ -150,15 +156,19 @@ public class MmsSmsDatabase extends Database {
                               MmsDatabase.MESSAGE_SIZE, MmsDatabase.EXPIRY, MmsDatabase.STATUS, MmsDatabase.REPLY_BODY,
                               MmsSmsColumns.RECEIPT_COUNT, MmsSmsColumns.MISMATCHED_IDENTITIES,
                               MmsSmsColumns.SUBSCRIPTION_ID, MmsSmsColumns.EXPIRES_IN, MmsSmsColumns.EXPIRE_STARTED,
+                              MmsSmsColumns.NOTIFIED,
                               MmsDatabase.NETWORK_FAILURE,  TRANSPORT,
                               AttachmentDatabase.UNIQUE_ID,
                               AttachmentDatabase.MMS_ID,
                               AttachmentDatabase.SIZE,
+                              AttachmentDatabase.FILE_NAME,
                               AttachmentDatabase.DATA,
                               AttachmentDatabase.THUMBNAIL,
                               AttachmentDatabase.CONTENT_TYPE,
-                              AttachmentDatabase.FILE_NAME,
                               AttachmentDatabase.CONTENT_LOCATION,
+                              AttachmentDatabase.DIGEST,
+                              AttachmentDatabase.FAST_PREFLIGHT_ID,
+                              AttachmentDatabase.VOICE_NOTE,
                               AttachmentDatabase.CONTENT_DISPOSITION,
                               AttachmentDatabase.NAME,
                               AttachmentDatabase.TRANSFER_STATE};
@@ -177,15 +187,19 @@ public class MmsSmsDatabase extends Database {
                               MmsDatabase.MESSAGE_SIZE, MmsDatabase.EXPIRY, MmsDatabase.STATUS, SmsDatabase.REPLY_BODY,
                               MmsSmsColumns.RECEIPT_COUNT, MmsSmsColumns.MISMATCHED_IDENTITIES,
                               MmsSmsColumns.SUBSCRIPTION_ID, MmsSmsColumns.EXPIRES_IN, MmsSmsColumns.EXPIRE_STARTED,
+                              MmsSmsColumns.NOTIFIED,
                               MmsDatabase.NETWORK_FAILURE, TRANSPORT,
                               AttachmentDatabase.UNIQUE_ID,
                               AttachmentDatabase.MMS_ID,
                               AttachmentDatabase.SIZE,
+                              AttachmentDatabase.FILE_NAME,
                               AttachmentDatabase.DATA,
                               AttachmentDatabase.THUMBNAIL,
                               AttachmentDatabase.CONTENT_TYPE,
-                              AttachmentDatabase.FILE_NAME,
                               AttachmentDatabase.CONTENT_LOCATION,
+                              AttachmentDatabase.DIGEST,
+                              AttachmentDatabase.FAST_PREFLIGHT_ID,
+                              AttachmentDatabase.VOICE_NOTE,
                               AttachmentDatabase.CONTENT_DISPOSITION,
                               AttachmentDatabase.NAME,
                               AttachmentDatabase.TRANSFER_STATE};
@@ -227,6 +241,7 @@ public class MmsSmsDatabase extends Database {
     mmsColumnsPresent.add(MmsDatabase.TRANSACTION_ID);
     mmsColumnsPresent.add(MmsDatabase.MESSAGE_SIZE);
     mmsColumnsPresent.add(MmsDatabase.EXPIRY);
+    mmsColumnsPresent.add(MmsDatabase.NOTIFIED);
     mmsColumnsPresent.add(MmsDatabase.STATUS);
     mmsColumnsPresent.add(MmsDatabase.REPLY_BODY);
     mmsColumnsPresent.add(MmsDatabase.NETWORK_FAILURE);
@@ -235,11 +250,14 @@ public class MmsSmsDatabase extends Database {
     mmsColumnsPresent.add(AttachmentDatabase.UNIQUE_ID);
     mmsColumnsPresent.add(AttachmentDatabase.MMS_ID);
     mmsColumnsPresent.add(AttachmentDatabase.SIZE);
+    mmsColumnsPresent.add(AttachmentDatabase.FILE_NAME);
     mmsColumnsPresent.add(AttachmentDatabase.DATA);
     mmsColumnsPresent.add(AttachmentDatabase.THUMBNAIL);
     mmsColumnsPresent.add(AttachmentDatabase.CONTENT_TYPE);
-    mmsColumnsPresent.add(AttachmentDatabase.FILE_NAME);
     mmsColumnsPresent.add(AttachmentDatabase.CONTENT_LOCATION);
+    mmsColumnsPresent.add(AttachmentDatabase.DIGEST);
+    mmsColumnsPresent.add(AttachmentDatabase.FAST_PREFLIGHT_ID);
+    mmsColumnsPresent.add(AttachmentDatabase.VOICE_NOTE);
     mmsColumnsPresent.add(AttachmentDatabase.CONTENT_DISPOSITION);
     mmsColumnsPresent.add(AttachmentDatabase.NAME);
     mmsColumnsPresent.add(AttachmentDatabase.TRANSFER_STATE);
@@ -256,6 +274,7 @@ public class MmsSmsDatabase extends Database {
     smsColumnsPresent.add(MmsSmsColumns.SUBSCRIPTION_ID);
     smsColumnsPresent.add(MmsSmsColumns.EXPIRES_IN);
     smsColumnsPresent.add(MmsSmsColumns.EXPIRE_STARTED);
+    smsColumnsPresent.add(MmsSmsColumns.NOTIFIED);
     smsColumnsPresent.add(MmsSmsColumns.REPLY_BODY);
     smsColumnsPresent.add(SmsDatabase.TYPE);
     smsColumnsPresent.add(SmsDatabase.SUBJECT);

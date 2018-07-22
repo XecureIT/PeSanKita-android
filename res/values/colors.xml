@@ -60,4 +60,11 @@
     <color name="reply_item_text_dark">#858585</color>
     <color name="reply_item_background_light">#f2f2f2</color>
     <color name="reply_item_background_dark">#181818</color>
+
+    <color name="application_text_light">#333333</color>
+    <color name="application_text_dark">#858585</color>
+    <color name="application_background_light">#ffffff</color>
+    <color name="application_background_light2">#eeeeee</color>
+    <color name="application_background_dark">#000000</color>
+    <color name="application_background_dark2">#1f1f1f</color>
 </resources>

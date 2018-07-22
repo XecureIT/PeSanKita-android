@@ -18,7 +18,6 @@ package org.thoughtcrime.securesms;
 
 import android.content.Context;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
@@ -35,7 +34,9 @@ import org.thoughtcrime.securesms.database.documents.IdentityKeyMismatch;
 import org.thoughtcrime.securesms.database.documents.NetworkFailure;
 import org.thoughtcrime.securesms.database.model.MessageRecord;
 import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 import org.thoughtcrime.securesms.sms.MessageSender;
+import org.thoughtcrime.securesms.util.Util;
 
 /**
  * A simple view to show the recipients of a message
@@ -43,18 +44,17 @@ import org.thoughtcrime.securesms.sms.MessageSender;
  * @author Jake McGinty
  */
 public class MessageRecipientListItem extends RelativeLayout
-    implements Recipient.RecipientModifiedListener
+    implements RecipientModifiedListener
 {
   private final static String TAG = MessageRecipientListItem.class.getSimpleName();
 
   private Recipient       recipient;
   private FromTextView    fromView;
   private TextView        errorDescription;
+  private TextView        actionDescription;
   private Button          conflictButton;
   private Button          resendButton;
   private AvatarImageView contactPhotoImage;
-
-  private final Handler handler = new Handler();
 
   public MessageRecipientListItem(Context context) {
     super(context);
@@ -66,8 +66,10 @@ public class MessageRecipientListItem extends RelativeLayout
 
   @Override
   protected void onFinishInflate() {
+    super.onFinishInflate();
     this.fromView          = (FromTextView)    findViewById(R.id.from);
     this.errorDescription  = (TextView)        findViewById(R.id.error_description);
+    this.actionDescription = (TextView)        findViewById(R.id.action_description);
     this.contactPhotoImage = (AvatarImageView) findViewById(R.id.contact_photo_image);
     this.conflictButton    = (Button)          findViewById(R.id.conflict_button);
     this.resendButton      = (Button)          findViewById(R.id.resend_button);
@@ -116,7 +118,10 @@ public class MessageRecipientListItem extends RelativeLayout
       resendButton.setOnClickListener(new OnClickListener() {
         @Override
         public void onClick(View v) {
-          resendButton.setEnabled(false);
+          resendButton.setVisibility(View.GONE);
+          errorDescription.setVisibility(View.GONE);
+          actionDescription.setVisibility(View.VISIBLE);
+          actionDescription.setText(R.string.message_recipients_list_item__resending);
           new ResendAsyncTask(masterSecret, record, networkFailure).execute();
         }
       });
@@ -132,7 +137,7 @@ public class MessageRecipientListItem extends RelativeLayout
   private NetworkFailure getNetworkFailure(final MessageRecord record) {
     if (record.hasNetworkFailures()) {
       for (final NetworkFailure failure : record.getNetworkFailures()) {
-        if (failure.getRecipientId() == recipient.getRecipientId()) {
+        if (failure.getAddress().equals(recipient.getAddress())) {
           return failure;
         }
       }
@@ -143,7 +148,7 @@ public class MessageRecipientListItem extends RelativeLayout
   private IdentityKeyMismatch getKeyMismatch(final MessageRecord record) {
     if (record.isIdentityMismatchFailure()) {
       for (final IdentityKeyMismatch mismatch : record.getIdentityKeyMismatches()) {
-        if (mismatch.getRecipientId() == recipient.getRecipientId()) {
+        if (mismatch.getAddress().equals(recipient.getAddress())) {
           return mismatch;
         }
       }
@@ -157,21 +162,20 @@ public class MessageRecipientListItem extends RelativeLayout
 
   @Override
   public void onModified(final Recipient recipient) {
-    handler.post(new Runnable() {
-      @Override
-      public void run() {
-        fromView.setText(recipient);
-        contactPhotoImage.setAvatar(recipient, false);
-      }
+    Util.runOnMain(() -> {
+      fromView.setText(recipient);
+      contactPhotoImage.setAvatar(recipient, false);
     });
   }
 
   private class ResendAsyncTask extends AsyncTask<Void,Void,Void> {
+    private final Context        context;
     private final MasterSecret   masterSecret;
     private final MessageRecord  record;
     private final NetworkFailure failure;
 
     public ResendAsyncTask(MasterSecret masterSecret, MessageRecord record, NetworkFailure failure) {
+      this.context      = getContext().getApplicationContext();
       this.masterSecret = masterSecret;
       this.record       = record;
       this.failure      = failure;
@@ -179,13 +183,13 @@ public class MessageRecipientListItem extends RelativeLayout
 
     @Override
     protected Void doInBackground(Void... params) {
-      MmsDatabase mmsDatabase = DatabaseFactory.getMmsDatabase(getContext());
+      MmsDatabase mmsDatabase = DatabaseFactory.getMmsDatabase(context);
       mmsDatabase.removeFailure(record.getId(), failure);
 
-      if (record.getRecipients().isGroupRecipient()) {
-        MessageSender.resendGroupMessage(getContext(), masterSecret, record, failure.getRecipientId());
+      if (record.getRecipient().isPushGroupRecipient()) {
+        MessageSender.resendGroupMessage(context, record, failure.getAddress());
       } else {
-        MessageSender.resend(getContext(), masterSecret, record);
+        MessageSender.resend(context, masterSecret, record);
       }
       return null;
     }

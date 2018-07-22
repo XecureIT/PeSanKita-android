@@ -6,20 +6,24 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 
 import org.thoughtcrime.securesms.R;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.database.Address;
+import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 import static org.whispersystems.signalservice.internal.push.SignalServiceProtos.GroupContext;
 
 public class GroupUtil {
 
-  private static final String ENCODED_GROUP_PREFIX = "__textsecure_group__!";
+  private static final String ENCODED_SIGNAL_GROUP_PREFIX = "__textsecure_group__!";
+  private static final String ENCODED_MMS_GROUP_PREFIX    = "__signal_mms_group__!";
   private static final String TAG                  = GroupUtil.class.getSimpleName();
 
-  public static String getEncodedId(byte[] groupId) {
-    return ENCODED_GROUP_PREFIX + Hex.toStringCondensed(groupId);
+  public static String getEncodedId(byte[] groupId, boolean mms) {
+    return (mms ? ENCODED_MMS_GROUP_PREFIX  : ENCODED_SIGNAL_GROUP_PREFIX) + Hex.toStringCondensed(groupId);
   }
 
   public static byte[] getDecodedId(String groupId) throws IOException {
@@ -31,7 +35,11 @@ public class GroupUtil {
   }
 
   public static boolean isEncodedGroup(@NonNull String groupId) {
-    return groupId.startsWith(ENCODED_GROUP_PREFIX);
+    return groupId.startsWith(ENCODED_SIGNAL_GROUP_PREFIX) || groupId.startsWith(ENCODED_MMS_GROUP_PREFIX);
+  }
+
+  public static boolean isMmsGroup(@NonNull String groupId) {
+    return groupId.startsWith(ENCODED_MMS_GROUP_PREFIX);
   }
 
   public static @NonNull GroupDescription getDescription(@NonNull Context context, @Nullable String encodedGroup) {
@@ -52,7 +60,7 @@ public class GroupUtil {
 
     @NonNull  private final Context         context;
     @Nullable private final GroupContext    groupContext;
-    @Nullable private final Recipients      members;
+    @Nullable private final List<Recipient> members;
 
     public GroupDescription(@NonNull Context context, @Nullable GroupContext groupContext) {
       this.context      = context.getApplicationContext();
@@ -61,39 +69,59 @@ public class GroupUtil {
       if (groupContext == null || groupContext.getMembersList().isEmpty()) {
         this.members = null;
       } else {
-        this.members = null; //RecipientFactory.getRecipientsFromString(context, Util.join(groupContext.getMembersList(), ", "), true);
+        this.members = null; /* new LinkedList<>();
+
+        for (String member : groupContext.getMembersList()) {
+          this.members.add(Recipient.from(context, Address.fromExternal(context, member), true));
+        }
+        */
       }
     }
 
-    public String toString() {
+    public String toString(Recipient sender) {
+      StringBuilder description = new StringBuilder();
+      description.append(context.getString(R.string.MessageRecord_s_updated_group, sender.toShortString()));
+
       if (groupContext == null) {
-        return context.getString(R.string.GroupUtil_group_updated);
+        return description.toString();
       }
 
-      StringBuilder description = new StringBuilder();
-      String        title       = groupContext.getName();
+      String title = groupContext.getName();
 
       if (members != null) {
+        description.append("\n");
         description.append(context.getResources().getQuantityString(R.plurals.GroupUtil_members_updated,
-                members.getRecipientsList().size(), members.toShortString()));
+                                                                    members.size(), toString(members)));
       }
 
       if (title != null && !title.trim().isEmpty()) {
-        if (description.length() > 0) description.append(" ");
+        if (members != null) description.append(" ");
+        else                 description.append("\n");
         description.append(context.getString(R.string.GroupUtil_group_name_is_now, title));
       }
 
-      if (description.length() > 0) {
-        return description.toString();
-      } else {
-        return context.getString(R.string.GroupUtil_group_updated);
+      return description.toString();
+    }
+
+    public void addListener(RecipientModifiedListener listener) {
+      if (this.members != null) {
+        for (Recipient member : this.members) {
+          member.addListener(listener);
+        }
       }
     }
 
-    public void addListener(Recipients.RecipientsModifiedListener listener) {
-      if (this.members != null) {
-        this.members.addListener(listener);
+    private String toString(List<Recipient> recipients) {
+      String result = "";
+
+      for (int i=0;i<recipients.size();i++) {
+        result += recipients.get(i).toShortString();
+
+        if (i != recipients.size() -1 )
+          result += ", ";
       }
+
+      return result;
     }
   }
 }

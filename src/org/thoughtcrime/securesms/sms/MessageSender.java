@@ -23,11 +23,12 @@ import android.util.Pair;
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.MasterSecretUnion;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.EncryptingSmsDatabase;
 import org.thoughtcrime.securesms.database.MmsDatabase;
-import org.thoughtcrime.securesms.database.NotInDirectoryException;
-import org.thoughtcrime.securesms.database.TextSecureDirectory;
+import org.thoughtcrime.securesms.database.RecipientDatabase;
+import org.thoughtcrime.securesms.database.SmsDatabase;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.database.model.MessageRecord;
 import org.thoughtcrime.securesms.jobs.MmsSendJob;
@@ -35,23 +36,20 @@ import org.thoughtcrime.securesms.jobs.PushGroupSendJob;
 import org.thoughtcrime.securesms.jobs.PushMediaSendJob;
 import org.thoughtcrime.securesms.jobs.PushTextSendJob;
 import org.thoughtcrime.securesms.jobs.SmsSendJob;
+import org.thoughtcrime.securesms.mms.MmsException;
 import org.thoughtcrime.securesms.mms.OutgoingMediaMessage;
 import org.thoughtcrime.securesms.push.AccountManagerFactory;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.service.ExpiringMessageManager;
-import org.thoughtcrime.securesms.util.GroupUtil;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.jobqueue.JobManager;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.SignalServiceAccountManager;
 import org.whispersystems.signalservice.api.push.ContactTokenDetails;
-import org.whispersystems.signalservice.api.util.InvalidNumberException;
 
 import java.io.IOException;
-
-import ws.com.google.android.mms.MmsException;
+import java.util.List;
 
 public class MessageSender {
 
@@ -61,24 +59,25 @@ public class MessageSender {
                           final MasterSecret masterSecret,
                           final OutgoingTextMessage message,
                           final long threadId,
-                          final boolean forceSms)
+                          final boolean forceSms,
+                          final SmsDatabase.InsertListener insertListener)
   {
     EncryptingSmsDatabase database    = DatabaseFactory.getEncryptingSmsDatabase(context);
-    Recipients            recipients  = message.getRecipients();
+    Recipient             recipient   = message.getRecipient();
     boolean               keyExchange = message.isKeyExchange();
 
     long allocatedThreadId;
 
     if (threadId == -1) {
-      allocatedThreadId = DatabaseFactory.getThreadDatabase(context).getThreadIdFor(recipients);
+      allocatedThreadId = DatabaseFactory.getThreadDatabase(context).getThreadIdFor(recipient);
     } else {
       allocatedThreadId = threadId;
     }
 
     long messageId = database.insertMessageOutbox(new MasterSecretUnion(masterSecret), allocatedThreadId,
-                                                  message, forceSms, System.currentTimeMillis());
+                                                  message, forceSms, System.currentTimeMillis(), insertListener);
 
-    sendTextMessage(context, recipients, forceSms, keyExchange, messageId, message.getExpiresIn());
+    sendTextMessage(context, recipient, forceSms, keyExchange, messageId, message.getExpiresIn());
 
     return allocatedThreadId;
   }
@@ -87,9 +86,10 @@ public class MessageSender {
                           final MasterSecret masterSecret,
                           final OutgoingMediaMessage message,
                           final long threadId,
-                          final boolean forceSms)
+                          final boolean forceSms,
+                          final SmsDatabase.InsertListener insertListener)
   {
-    return send(context, masterSecret, message, threadId, forceSms, null);
+    return send(context, masterSecret, message, threadId, forceSms, insertListener, null);
   }
 
   public static long send(final Context context,
@@ -97,7 +97,8 @@ public class MessageSender {
                           final OutgoingMediaMessage message,
                           final long threadId,
                           final boolean forceSms,
-                          final Recipients destRecipients)
+                          final SmsDatabase.InsertListener insertListener,
+                          final List<Recipient> destRecipients)
   {
     try {
       ThreadDatabase threadDatabase = DatabaseFactory.getThreadDatabase(context);
@@ -106,14 +107,15 @@ public class MessageSender {
       long allocatedThreadId;
 
       if (threadId == -1) {
-        allocatedThreadId = threadDatabase.getThreadIdFor(message.getRecipients(), message.getDistributionType());
+        allocatedThreadId = threadDatabase.getThreadIdFor(message.getRecipient(), message.getDistributionType());
       } else {
         allocatedThreadId = threadId;
       }
 
-      long       messageId  = database.insertMessageOutbox(new MasterSecretUnion(masterSecret), message, allocatedThreadId, forceSms);
+      Recipient recipient = message.getRecipient();
+      long      messageId = database.insertMessageOutbox(new MasterSecretUnion(masterSecret), message, allocatedThreadId, forceSms, insertListener);
 
-      sendMediaMessage(context, masterSecret, message.getRecipients(), forceSms, messageId, message.getExpiresIn(), destRecipients);
+      sendMediaMessage(context, masterSecret, recipient, forceSms, messageId, message.getExpiresIn(), destRecipients);
 
       return allocatedThreadId;
     } catch (MmsException e) {
@@ -122,11 +124,10 @@ public class MessageSender {
     }
   }
 
-  public static void resendGroupMessage(Context context, MasterSecret masterSecret, MessageRecord messageRecord, long filterRecipientId) {
+  public static void resendGroupMessage(Context context, MessageRecord messageRecord, Address filterAddress) {
     if (!messageRecord.isMms()) throw new AssertionError("Not Group");
 
-    Recipients recipients = DatabaseFactory.getMmsAddressDatabase(context).getRecipientsForId(messageRecord.getId());
-    sendGroupPush(context, recipients, messageRecord.getId(), filterRecipientId, null);
+    sendGroupPush(context, messageRecord.getRecipient(), messageRecord.getId(), filterAddress, null);
   }
 
   public static void resend(Context context, MasterSecret masterSecret, MessageRecord messageRecord) {
@@ -135,13 +136,12 @@ public class MessageSender {
       boolean    forceSms    = messageRecord.isForcedSms();
       boolean    keyExchange = messageRecord.isKeyExchange();
       long       expiresIn   = messageRecord.getExpiresIn();
+      Recipient  recipient   = messageRecord.getRecipient();
 
       if (messageRecord.isMms()) {
-        Recipients recipients = DatabaseFactory.getMmsAddressDatabase(context).getRecipientsForId(messageId);
-        sendMediaMessage(context, masterSecret, recipients, forceSms, messageId, expiresIn, null);
+        sendMediaMessage(context, masterSecret, recipient, forceSms, messageId, expiresIn, null);
       } else {
-        Recipients recipients  = messageRecord.getRecipients();
-        sendTextMessage(context, recipients, forceSms, keyExchange, messageId, expiresIn);
+        sendTextMessage(context, recipient, forceSms, keyExchange, messageId, expiresIn);
       }
     } catch (MmsException e) {
       Log.w(TAG, e);
@@ -149,31 +149,31 @@ public class MessageSender {
   }
 
   private static void sendMediaMessage(Context context, MasterSecret masterSecret,
-                                       Recipients recipients, boolean forceSms,
-                                       long messageId, long expiresIn, Recipients destRecipients)
+                                       Recipient recipient, boolean forceSms,
+                                       long messageId, long expiresIn, List<Recipient> destRecipients)
       throws MmsException
   {
-    if (!forceSms && isSelfSend(context, recipients)) {
+    if (!forceSms && isSelfSend(context, recipient)) {
       sendMediaSelf(context, masterSecret, messageId, expiresIn);
-    } else if (isGroupPushSend(recipients)) {
-      sendGroupPush(context, recipients, messageId, -1, destRecipients);
-    } else if (!forceSms && isPushMediaSend(context, recipients)) {
-      sendMediaPush(context, recipients, messageId);
+    } else if (isGroupPushSend(recipient)) {
+      sendGroupPush(context, recipient, messageId, null, destRecipients);
+    } else if (!forceSms && isPushMediaSend(context, recipient)) {
+      sendMediaPush(context, recipient, messageId);
     } else {
       sendMms(context, messageId);
     }
   }
 
-  private static void sendTextMessage(Context context, Recipients recipients,
+  private static void sendTextMessage(Context context, Recipient recipient,
                                       boolean forceSms, boolean keyExchange,
                                       long messageId, long expiresIn)
   {
-    if (!forceSms && isSelfSend(context, recipients)) {
+    if (!forceSms && isSelfSend(context, recipient)) {
       sendTextSelf(context, messageId, expiresIn);
-    } else if (!forceSms && isPushTextSend(context, recipients, keyExchange)) {
-      sendTextPush(context, recipients, messageId);
+    } else if (!forceSms && isPushTextSend(context, recipient, keyExchange)) {
+      sendTextPush(context, recipient, messageId);
     } else {
-      sendSms(context, recipients, messageId);
+      sendSms(context, recipient, messageId);
     }
   }
 
@@ -209,24 +209,24 @@ public class MessageSender {
     }
   }
 
-  private static void sendTextPush(Context context, Recipients recipients, long messageId) {
+  private static void sendTextPush(Context context, Recipient recipient, long messageId) {
     JobManager jobManager = ApplicationContext.getInstance(context).getJobManager();
-    jobManager.add(new PushTextSendJob(context, messageId, recipients.getPrimaryRecipient().getNumber()));
+    jobManager.add(new PushTextSendJob(context, messageId, recipient.getAddress()));
   }
 
-  private static void sendMediaPush(Context context, Recipients recipients, long messageId) {
+  private static void sendMediaPush(Context context, Recipient recipient, long messageId) {
     JobManager jobManager = ApplicationContext.getInstance(context).getJobManager();
-    jobManager.add(new PushMediaSendJob(context, messageId, recipients.getPrimaryRecipient().getNumber()));
+    jobManager.add(new PushMediaSendJob(context, messageId, recipient.getAddress()));
   }
 
-  private static void sendGroupPush(Context context, Recipients recipients, long messageId, long filterRecipientId, Recipients destRecipients) {
+  private static void sendGroupPush(Context context, Recipient recipient, long messageId, Address filterAddress, List<Recipient> destRecipients) {
     JobManager jobManager = ApplicationContext.getInstance(context).getJobManager();
-    jobManager.add(new PushGroupSendJob(context, messageId, recipients.getPrimaryRecipient().getNumber(), filterRecipientId, destRecipients));
+    jobManager.add(new PushGroupSendJob(context, messageId, recipient.getAddress(), filterAddress, destRecipients));
   }
 
-  private static void sendSms(Context context, Recipients recipients, long messageId) {
+  private static void sendSms(Context context, Recipient recipient, long messageId) {
     JobManager jobManager = ApplicationContext.getInstance(context).getJobManager();
-    jobManager.add(new SmsSendJob(context, messageId, recipients.getPrimaryRecipient().getName()));
+    jobManager.add(new SmsSendJob(context, messageId, recipient.getName()));
   }
 
   private static void sendMms(Context context, long messageId) {
@@ -234,84 +234,62 @@ public class MessageSender {
     jobManager.add(new MmsSendJob(context, messageId));
   }
 
-  private static boolean isPushTextSend(Context context, Recipients recipients, boolean keyExchange) {
-    try {
-      if (!TextSecurePreferences.isPushRegistered(context)) {
-        return false;
-      }
-
-      if (keyExchange) {
-        return false;
-      }
-
-      Recipient recipient   = recipients.getPrimaryRecipient();
-      String    destination = Util.canonicalizeNumber(context, recipient.getNumber());
-
-      return isPushDestination(context, destination);
-    } catch (InvalidNumberException e) {
-      Log.w(TAG, e);
-      return false;
-    }
-  }
-
-  private static boolean isPushMediaSend(Context context, Recipients recipients) {
-    try {
-      if (!TextSecurePreferences.isPushRegistered(context)) {
-        return false;
-      }
-
-      if (recipients.getRecipientsList().size() > 1) {
-        return false;
-      }
-
-      Recipient recipient   = recipients.getPrimaryRecipient();
-      String    destination = Util.canonicalizeNumber(context, recipient.getNumber());
-
-      return isPushDestination(context, destination);
-    } catch (InvalidNumberException e) {
-      Log.w(TAG, e);
-      return false;
-    }
-  }
-
-  private static boolean isGroupPushSend(Recipients recipients) {
-    return GroupUtil.isEncodedGroup(recipients.getPrimaryRecipient().getNumber());
-  }
-
-  private static boolean isSelfSend(Context context, Recipients recipients) {
+  private static boolean isPushTextSend(Context context, Recipient recipient, boolean keyExchange) {
     if (!TextSecurePreferences.isPushRegistered(context)) {
       return false;
     }
 
-    if (!recipients.isSingleRecipient()) {
+    if (keyExchange) {
       return false;
     }
 
-    if (recipients.isGroupRecipient()) {
-      return false;
-    }
-
-    return Util.isOwnNumber(context, recipients.getPrimaryRecipient().getNumber());
+    return isPushDestination(context, recipient);
   }
 
-  private static boolean isPushDestination(Context context, String destination) {
-    TextSecureDirectory directory = TextSecureDirectory.getInstance(context);
+  private static boolean isPushMediaSend(Context context, Recipient recipient) {
+    if (!TextSecurePreferences.isPushRegistered(context)) {
+      return false;
+    }
 
-    try {
-      return directory.isSecureTextSupported(destination);
-    } catch (NotInDirectoryException e) {
+    if (recipient.isGroupRecipient()) {
+      return false;
+    }
+
+    return isPushDestination(context, recipient);
+  }
+
+  private static boolean isGroupPushSend(Recipient recipient) {
+    return recipient.getAddress().isGroup() &&
+           !recipient.getAddress().isMmsGroup();
+  }
+
+  private static boolean isSelfSend(Context context, Recipient recipient) {
+    if (!TextSecurePreferences.isPushRegistered(context)) {
+      return false;
+    }
+
+    if (recipient.isGroupRecipient()) {
+      return false;
+    }
+
+    return Util.isOwnNumber(context, recipient.getAddress());
+  }
+
+  private static boolean isPushDestination(Context context, Recipient destination) {
+    if (destination.resolve().getRegistered() == RecipientDatabase.RegisteredState.REGISTERED) {
+      return true;
+    } else if (destination.resolve().getRegistered() == RecipientDatabase.RegisteredState.NOT_REGISTERED) {
+      return false;
+    } else {
       try {
         SignalServiceAccountManager   accountManager = AccountManagerFactory.createManager(context);
-        Optional<ContactTokenDetails> registeredUser = accountManager.getContact(destination);
+        Optional<ContactTokenDetails> registeredUser = accountManager.getContact(destination.getAddress().serialize());
 
         if (!registeredUser.isPresent()) {
-          registeredUser = Optional.of(new ContactTokenDetails());
-          registeredUser.get().setNumber(destination);
-          directory.setNumber(registeredUser.get(), false);
+          DatabaseFactory.getRecipientDatabase(context).setRegistered(destination, RecipientDatabase.RegisteredState.NOT_REGISTERED);
           return false;
         } else {
-          registeredUser.get().setNumber(destination);
-          directory.setNumber(registeredUser.get(), true);
+          DatabaseFactory.getRecipientDatabase(context).setRegistered(destination, RecipientDatabase.RegisteredState.REGISTERED);
           return true;
         }
       } catch (IOException e1) {

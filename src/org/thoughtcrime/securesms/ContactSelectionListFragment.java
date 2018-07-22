@@ -60,9 +60,9 @@ public class ContactSelectionListFragment extends    Fragment
   public final static String REFRESHABLE  = "refreshable";
   public final static String PRE_SELECT  = "pre_select";
 
-//  public final static int DISPLAY_MODE_ALL        = ContactsCursorLoader.MODE_ALL;
-  public final static int DISPLAY_MODE_PUSH_ONLY  = ContactsCursorLoader.MODE_PUSH_ONLY;
-  public final static int DISPLAY_MODE_OTHER_ONLY = ContactsCursorLoader.MODE_OTHER_ONLY;
+  //public final static int DISPLAY_MODE_ALL       = ContactsCursorLoader.MODE_ALL;
+  public final static int DISPLAY_MODE_PUSH_ONLY = ContactsCursorLoader.MODE_PUSH_ONLY;
+  public final static int DISPLAY_MODE_SMS_ONLY  = ContactsCursorLoader.MODE_SMS_ONLY;
 
   private TextView emptyText;
 
@@ -76,7 +76,7 @@ public class ContactSelectionListFragment extends    Fragment
 
   @Override
   public void onActivityCreated(Bundle icicle) {
-    super.onCreate(icicle);
+    super.onActivityCreated(icicle);
     initializeCursor();
   }
 

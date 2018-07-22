@@ -2,13 +2,20 @@ package org.thoughtcrime.securesms.jobs;
 
 import android.content.Context;
 import android.net.Uri;
+import android.support.annotation.Nullable;
 import android.util.Log;
-import android.util.Pair;
+
+import com.google.android.mms.pdu_alt.CharacterSets;
+import com.google.android.mms.pdu_alt.EncodedStringValue;
+import com.google.android.mms.pdu_alt.PduBody;
+import com.google.android.mms.pdu_alt.PduPart;
+import com.google.android.mms.pdu_alt.RetrieveConf;
 
 import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.attachments.UriAttachment;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.MasterSecretUnion;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.AttachmentDatabase;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.MessagingDatabase.InsertResult;
@@ -17,11 +24,13 @@ import org.thoughtcrime.securesms.jobs.requirements.MasterSecretRequirement;
 import org.thoughtcrime.securesms.mms.ApnUnavailableException;
 import org.thoughtcrime.securesms.mms.CompatMmsConnection;
 import org.thoughtcrime.securesms.mms.IncomingMediaMessage;
+import org.thoughtcrime.securesms.mms.MmsException;
 import org.thoughtcrime.securesms.mms.MmsRadioException;
 import org.thoughtcrime.securesms.mms.PartParser;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
 import org.thoughtcrime.securesms.providers.SingleUseBlobProvider;
 import org.thoughtcrime.securesms.service.KeyCachingService;
+import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.jobqueue.JobParameters;
 import org.whispersystems.jobqueue.requirements.NetworkRequirement;
@@ -32,16 +41,12 @@ import org.whispersystems.libsignal.NoSessionException;
 import org.whispersystems.libsignal.util.guava.Optional;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import ws.com.google.android.mms.MmsException;
-import ws.com.google.android.mms.pdu.EncodedStringValue;
-import ws.com.google.android.mms.pdu.NotificationInd;
-import ws.com.google.android.mms.pdu.PduBody;
-import ws.com.google.android.mms.pdu.PduPart;
-import ws.com.google.android.mms.pdu.RetrieveConf;
 
 public class MmsDownloadJob extends MasterSecretJob {
 
@@ -75,8 +80,8 @@ public class MmsDownloadJob extends MasterSecretJob {
 
   @Override
   public void onRun(MasterSecret masterSecret) {
-    MmsDatabase                              database     = DatabaseFactory.getMmsDatabase(context);
-    Optional<Pair<NotificationInd, Integer>> notification = database.getNotification(messageId);
+    MmsDatabase                               database     = DatabaseFactory.getMmsDatabase(context);
+    Optional<MmsDatabase.MmsNotificationInfo> notification = database.getNotification(messageId);
 
     if (!notification.isPresent()) {
       Log.w(TAG, "No notification for ID: " + messageId);
@@ -84,24 +89,38 @@ public class MmsDownloadJob extends MasterSecretJob {
     }
 
     try {
-      if (notification.get().first.getContentLocation() == null) {
+      if (notification.get().getContentLocation() == null) {
         throw new MmsException("Notification content location was null.");
+      }
+
+      if (!TextSecurePreferences.isPushRegistered(context)) {
+        throw new MmsException("Not registered");
       }
 
       database.markDownloadState(messageId, MmsDatabase.Status.DOWNLOAD_CONNECTING);
 
-      String contentLocation = new String(notification.get().first.getContentLocation());
-      byte[] transactionId   = notification.get().first.getTransactionId();
+      String contentLocation = notification.get().getContentLocation();
+      byte[] transactionId   = new byte[0];
 
-      Log.w(TAG, "Downloading mms at " + Uri.parse(contentLocation).getHost());
+      try {
+        if (notification.get().getTransactionId() != null) {
+          transactionId = notification.get().getTransactionId().getBytes(CharacterSets.MIMENAME_ISO_8859_1);
+        } else {
+          Log.w(TAG, "No transaction ID!");
+        }
+      } catch (UnsupportedEncodingException e) {
+        Log.w(TAG, e);
+      }
 
-      RetrieveConf retrieveConf = new CompatMmsConnection(context).retrieve(contentLocation, transactionId, notification.get().second);
+      Log.w(TAG, "Downloading mms at " + Uri.parse(contentLocation).getHost() + ", subscription ID: " + notification.get().getSubscriptionId());
+
+      RetrieveConf retrieveConf = new CompatMmsConnection(context).retrieve(contentLocation, transactionId, notification.get().getSubscriptionId());
 
       if (retrieveConf == null) {
         throw new MmsException("RetrieveConf was null");
       }
 
-      storeRetrievedMms(masterSecret, contentLocation, messageId, threadId, retrieveConf, notification.get().second);
+      storeRetrievedMms(masterSecret, contentLocation, messageId, threadId, retrieveConf, notification.get().getSubscriptionId(), notification.get().getFrom());
     } catch (ApnUnavailableException e) {
       Log.w(TAG, e);
       handleDownloadError(masterSecret, messageId, threadId, MmsDatabase.Status.DOWNLOAD_APN_UNAVAILABLE,
@@ -149,33 +168,41 @@ public class MmsDownloadJob extends MasterSecretJob {
 
   private void storeRetrievedMms(MasterSecret masterSecret, String contentLocation,
                                  long messageId, long threadId, RetrieveConf retrieved,
-                                 int subscriptionId)
+                                 int subscriptionId, @Nullable Address notificationFrom)
       throws MmsException, NoSessionException, DuplicateMessageException, InvalidMessageException,
              LegacyMessageException
   {
     MmsDatabase           database    = DatabaseFactory.getMmsDatabase(context);
     SingleUseBlobProvider provider    = SingleUseBlobProvider.getInstance();
-    String                from        = null;
-    List<String>          to          = new LinkedList<>();
-    List<String>          cc          = new LinkedList<>();
+    Optional<Address>     group       = Optional.absent();
+    Set<Address>          members     = new HashSet<>();
     String                body        = null;
     List<Attachment>      attachments = new LinkedList<>();
 
+    Address               from;
+
     if (retrieved.getFrom() != null) {
-      from = Util.toIsoString(retrieved.getFrom().getTextString());
+      from = Address.fromExternal(context, Util.toIsoString(retrieved.getFrom().getTextString()));
+    } else if (notificationFrom != null) {
+      from = notificationFrom;
+    } else {
+      from = Address.UNKNOWN;
     }
 
     if (retrieved.getTo() != null) {
       for (EncodedStringValue toValue : retrieved.getTo()) {
-        to.add(Util.toIsoString(toValue.getTextString()));
+        members.add(Address.fromExternal(context, Util.toIsoString(toValue.getTextString())));
       }
     }
 
     if (retrieved.getCc() != null) {
       for (EncodedStringValue ccValue : retrieved.getCc()) {
-        cc.add(Util.toIsoString(ccValue.getTextString()));
+        members.add(Address.fromExternal(context, Util.toIsoString(ccValue.getTextString())));
       }
     }
+
+    members.add(from);
+    members.add(Address.fromExternal(context, TextSecurePreferences.getLocalNumber(context)));
 
     if (retrieved.getBody() != null) {
       body = PartParser.getMessageText(retrieved.getBody());
@@ -185,17 +212,24 @@ public class MmsDownloadJob extends MasterSecretJob {
         PduPart part = media.getPart(i);
 
         if (part.getData() != null) {
-          Uri uri = provider.createUri(part.getData());
+          Uri    uri  = provider.createUri(part.getData());
+          String name = null;
+
+          if (part.getName() != null) name = Util.toIsoString(part.getName());
+
           attachments.add(new UriAttachment(uri, Util.toIsoString(part.getContentType()),
                                             AttachmentDatabase.TRANSFER_PROGRESS_DONE,
-                                            part.getData().length));
+                                            part.getData().length, name, false));
         }
       }
     }
 
 
+    if (members.size() > 2) {
+      group = Optional.of(Address.fromSerialized(DatabaseFactory.getGroupDatabase(context).getOrCreateGroupForMembers(new LinkedList<>(members), true)));
+    }
 
-    IncomingMediaMessage   message      = new IncomingMediaMessage(from, to, cc, body, retrieved.getDate() * 1000L, attachments, subscriptionId, 0, false);
+    IncomingMediaMessage   message      = new IncomingMediaMessage(from, group, body, null, retrieved.getDate() * 1000L, attachments, subscriptionId, 0, false);
     Optional<InsertResult> insertResult = database.insertMessageInbox(new MasterSecretUnion(masterSecret),
                                                                       message, contentLocation, threadId);
 

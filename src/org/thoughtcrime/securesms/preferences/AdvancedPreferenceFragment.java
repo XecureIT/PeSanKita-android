@@ -19,7 +19,6 @@ import android.widget.Toast;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
-import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.ApplicationPreferencesActivity;
 import org.thoughtcrime.securesms.LogSubmitActivity;
 import org.thoughtcrime.securesms.R;
@@ -27,7 +26,6 @@ import org.thoughtcrime.securesms.RegistrationActivity;
 import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.ContactIdentityManager;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
-import org.thoughtcrime.securesms.jobs.RefreshAttributesJob;
 import org.thoughtcrime.securesms.push.AccountManagerFactory;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.task.ProgressDialogAsyncTask;
@@ -42,8 +40,6 @@ public class AdvancedPreferenceFragment extends PreferenceFragment {
 
   private static final String PUSH_MESSAGING_PREF   = "pref_toggle_push_messaging";
   private static final String SUBMIT_DEBUG_LOG_PREF = "pref_submit_debug_logs";
-  private static final String WEBRTC_CALLING_PREF = "pref_webrtc_calling";
-  private static final String ALWAYS_RELAY_CALLS_PREF = "pref_turn_only";
   private static final String APP_VERSION_PREF = "pref_app_version";
 
   private static final int PICK_IDENTITY_CONTACT = 1;
@@ -62,9 +58,6 @@ public class AdvancedPreferenceFragment extends PreferenceFragment {
     getPreferenceScreen().removePreference(submitDebugLog);
 //    submitDebugLog.setOnPreferenceClickListener(new SubmitDebugLogListener());
 //    submitDebugLog.setSummary(getVersion(getActivity()));
-
-    getPreferenceScreen().removePreference(this.findPreference(WEBRTC_CALLING_PREF));
-    getPreferenceScreen().removePreference(this.findPreference(ALWAYS_RELAY_CALLS_PREF));
 
     Preference appVersion = this.findPreference(APP_VERSION_PREF);
     appVersion.setSummary(getVersion(getActivity()));
@@ -160,18 +153,6 @@ public class AdvancedPreferenceFragment extends PreferenceFragment {
     public boolean onPreferenceClick(Preference preference) {
       final Intent intent = new Intent(getActivity(), LogSubmitActivity.class);
       startActivity(intent);
-      return true;
-    }
-  }
-
-  private class WebRtcClickListener implements Preference.OnPreferenceChangeListener {
-
-    @Override
-    public boolean onPreferenceChange(Preference preference, Object newValue) {
-//      TextSecurePreferences.setWebrtcCallingEnabled(getContext(), (Boolean)newValue);
-      ApplicationContext.getInstance(getContext())
-                        .getJobManager()
-                        .add(new RefreshAttributesJob(getContext()));
       return true;
     }
   }

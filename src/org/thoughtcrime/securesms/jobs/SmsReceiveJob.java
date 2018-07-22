@@ -1,6 +1,8 @@
 package org.thoughtcrime.securesms.jobs;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.telephony.SmsMessage;
 import android.util.Log;
 
@@ -11,8 +13,7 @@ import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.EncryptingSmsDatabase;
 import org.thoughtcrime.securesms.database.MessagingDatabase.InsertResult;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.service.KeyCachingService;
 import org.thoughtcrime.securesms.sms.IncomingTextMessage;
 import org.whispersystems.jobqueue.JobParameters;
@@ -27,10 +28,10 @@ public class SmsReceiveJob extends ContextJob {
 
   private static final String TAG = SmsReceiveJob.class.getSimpleName();
 
-  private final Object[] pdus;
+  private final @Nullable Object[] pdus;
   private final int      subscriptionId;
 
-  public SmsReceiveJob(Context context, Object[] pdus, int subscriptionId) {
+  public SmsReceiveJob(@NonNull Context context, @Nullable Object[] pdus, int subscriptionId) {
     super(context, JobParameters.newBuilder()
                                 .withPersistence()
                                 .withWakeLock(true)
@@ -83,8 +84,8 @@ public class SmsReceiveJob extends ContextJob {
 
   private boolean isBlocked(IncomingTextMessage message) {
     if (message.getSender() != null) {
-      Recipients recipients = RecipientFactory.getRecipientsFromString(context, message.getSender(), false);
-      return recipients.isBlocked();
+      Recipient recipient = Recipient.from(context, message.getSender(), false);
+      return recipient.isBlocked();
     }
 
     return false;
@@ -104,11 +105,15 @@ public class SmsReceiveJob extends ContextJob {
     }
   }
 
-  private Optional<IncomingTextMessage> assembleMessageFragments(Object[] pdus, int subscriptionId) {
+  private Optional<IncomingTextMessage> assembleMessageFragments(@Nullable Object[] pdus, int subscriptionId) {
+    if (pdus == null) {
+      return Optional.absent();
+    }
+
     List<IncomingTextMessage> messages = new LinkedList<>();
 
     for (Object pdu : pdus) {
-      messages.add(new IncomingTextMessage(SmsMessage.createFromPdu((byte[])pdu), subscriptionId));
+      messages.add(new IncomingTextMessage(context, SmsMessage.createFromPdu((byte[])pdu), subscriptionId));
     }
 
     if (messages.isEmpty()) {

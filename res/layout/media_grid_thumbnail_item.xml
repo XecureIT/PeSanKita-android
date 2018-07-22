@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/linear_layout_grid_thumbnail"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?application_background"
+    android:layout_margin="3dp"
+    android:layout_centerVertical="true"
+    android:layout_centerHorizontal="true"
+    android:padding="5dp">
+
+    <LinearLayout
+        android:id="@+id/first_line"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="100"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal">
+        <ImageView
+            android:id="@+id/thumbnail_item_1"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_weight="50"
+            android:scaleType="centerCrop"
+            android:layout_marginRight="1dp"
+            android:layout_marginBottom="1dp"/>
+
+        <ImageView
+            android:id="@+id/thumbnail_item_2"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_weight="50"
+            android:scaleType="centerCrop"
+            android:layout_marginBottom="1dp"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/second_line"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:weightSum="100"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal">
+
+        <ImageView
+            android:id="@+id/thumbnail_item_3"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_weight="50"
+            android:scaleType="centerCrop"
+            android:layout_marginRight="1dp"/>
+
+        <ImageView
+            android:id="@+id/thumbnail_item_4"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_weight="50"
+            android:scaleType="centerCrop"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/thumbnail_item_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:textSize="14dp"
+        android:paddingTop="3dp"
+        android:textAlignment="center"/>
+</LinearLayout>

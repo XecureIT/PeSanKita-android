@@ -25,10 +25,10 @@ import android.view.MenuItem;
 import android.view.View;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
 
 /**
  * Activity container for starting a new conversation.
@@ -49,14 +49,14 @@ public class NewConversationActivity extends ContactSelectionActivity {
 
   @Override
   public void onContactSelected(String number) {
-    Recipients recipients = RecipientFactory.getRecipientsFromString(this, number, true);
+    Recipient recipient = Recipient.from(this, Address.fromExternal(this, number), true);
 
     Intent intent = new Intent(this, ConversationActivity.class);
-    intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+    intent.putExtra(ConversationActivity.ADDRESS_EXTRA, recipient.getAddress());
     intent.putExtra(ConversationActivity.TEXT_EXTRA, getIntent().getStringExtra(ConversationActivity.TEXT_EXTRA));
     intent.setDataAndType(getIntent().getData(), getIntent().getType());
 
-    long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);
+    long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipient);
 
     intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, existingThread);
     intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);

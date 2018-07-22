@@ -19,10 +19,13 @@ package org.thoughtcrime.securesms;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcel;
 import android.os.Process;
+import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -33,10 +36,10 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.mms.PartAuthority;
 import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.DynamicTheme;
 import org.thoughtcrime.securesms.util.FileUtils;
@@ -57,9 +60,9 @@ public class ShareActivity extends PassphraseRequiredActionBarActivity
 {
   private static final String TAG = ShareActivity.class.getSimpleName();
 
-  public static final String EXTRA_THREAD_ID         = "thread_id";
-  public static final String EXTRA_RECIPIENT_IDS     = "recipient_ids";
-  public static final String EXTRA_DISTRIBUTION_TYPE = "distribution_type";
+  public static final String EXTRA_THREAD_ID          = "thread_id";
+  public static final String EXTRA_ADDRESS_MARSHALLED = "address_marshalled";
+  public static final String EXTRA_DISTRIBUTION_TYPE  = "distribution_type";
 
   private final DynamicTheme    dynamicTheme    = new DynamicTheme   ();
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
@@ -91,6 +94,7 @@ public class ShareActivity extends PassphraseRequiredActionBarActivity
 
   @Override
   protected void onNewIntent(Intent intent) {
+    Log.w(TAG, "onNewIntent()");
     super.onNewIntent(intent);
     setIntent(intent);
     initializeMedia();
@@ -98,6 +102,7 @@ public class ShareActivity extends PassphraseRequiredActionBarActivity
 
   @Override
   public void onResume() {
+    Log.w(TAG, "onResume()");
     super.onResume();
     dynamicTheme.onResume(this);
     dynamicLanguage.onResume(this);
@@ -160,16 +165,25 @@ public class ShareActivity extends PassphraseRequiredActionBarActivity
   }
 
   @Override
-  public void onCreateConversation(long threadId, Recipients recipients, int distributionType) {
-    createConversation(threadId, recipients, distributionType);
+  public void onCreateConversation(long threadId, Recipient recipient, int distributionType) {
+    createConversation(threadId, recipient.getAddress(), distributionType);
   }
 
   private void handleResolvedMedia(Intent intent, boolean animate) {
-    long   threadId         = intent.getLongExtra(EXTRA_THREAD_ID, -1);
-    long[] recipientIds     = intent.getLongArrayExtra(EXTRA_RECIPIENT_IDS);
-    int    distributionType = intent.getIntExtra(EXTRA_DISTRIBUTION_TYPE, -1);
+    long      threadId         = intent.getLongExtra(EXTRA_THREAD_ID, -1);
+    int       distributionType = intent.getIntExtra(EXTRA_DISTRIBUTION_TYPE, -1);
+    Address   address          = null;
 
-    boolean hasResolvedDestination = threadId != -1 && recipientIds != null && distributionType != -1;
+    if (intent.hasExtra(EXTRA_ADDRESS_MARSHALLED)) {
+      Parcel parcel = Parcel.obtain();
+      byte[] marshalled = intent.getByteArrayExtra(EXTRA_ADDRESS_MARSHALLED);
+      parcel.unmarshall(marshalled, 0, marshalled.length);
+      parcel.setDataPosition(0);
+      address = parcel.readParcelable(getClassLoader());
+      parcel.recycle();
+    }
+
+    boolean hasResolvedDestination = threadId != -1 && address != null && distributionType != -1;
 
     if (!hasResolvedDestination && animate) {
       ViewUtil.fadeIn(fragmentContainer, 300);
@@ -178,13 +192,13 @@ public class ShareActivity extends PassphraseRequiredActionBarActivity
       fragmentContainer.setVisibility(View.VISIBLE);
       progressWheel.setVisibility(View.GONE);
     } else {
-      createConversation(threadId, RecipientFactory.getRecipientsForIds(this, recipientIds, true), distributionType);
+      createConversation(threadId, address, distributionType);
     }
   }
 
-  private void createConversation(long threadId, Recipients recipients, int distributionType) {
+  private void createConversation(long threadId, Address address, int distributionType) {
     final Intent intent = getBaseShareIntent(ConversationActivity.class);
-    intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+    intent.putExtra(ConversationActivity.ADDRESS_EXTRA, address);
     intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, threadId);
     intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, distributionType);
 
@@ -235,7 +249,24 @@ public class ShareActivity extends PassphraseRequiredActionBarActivity
           return null;
         }
 
-        return PersistentBlobProvider.getInstance(context).create(masterSecret, inputStream, mimeType);
+        Cursor cursor   = getContentResolver().query(uris[0], new String[] {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null);
+        String fileName = null;
+        Long   fileSize = null;
+
+        try {
+          if (cursor != null && cursor.moveToFirst()) {
+            try {
+              fileName = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+              fileSize = cursor.getLong(cursor.getColumnIndexOrThrow(OpenableColumns.SIZE));
+            } catch (IllegalArgumentException e) {
+              Log.w(TAG, e);
+            }
+          }
+        } finally {
+          if (cursor != null) cursor.close();
+        }
+
+        return PersistentBlobProvider.getInstance(context).create(masterSecret, inputStream, mimeType, fileName, fileSize);
       } catch (IOException ioe) {
         Log.w(TAG, ioe);
         return null;

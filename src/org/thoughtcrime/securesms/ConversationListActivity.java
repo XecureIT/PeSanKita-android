@@ -35,11 +35,11 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.service.KeyCachingService;
 import org.thoughtcrime.securesms.util.DirectoryHelper;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
@@ -59,11 +59,12 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
 
   private static final String TAG = ConversationListActivity.class.getSimpleName();
 
-  private final DynamicTheme dynamicTheme    = new DynamicTheme   ();
+  private final DynamicTheme    dynamicTheme    = new DynamicTheme   ();
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
 
   private ConversationListFragment chatsFragment;
   private ContactSelectionListFragment contactsFragment;
+  private MediaFragment mediaFragment;
 
   private ContentObserver observer;
   private MasterSecret masterSecret;
@@ -140,16 +141,18 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
 
     chatsFragment = initFragment(new ConversationListFragment(), masterSecret, dynamicLanguage.getCurrentLocale(), null);
     contactsFragment = initFragment(new ContactSelectionListFragment(), masterSecret, dynamicLanguage.getCurrentLocale(), null);
+    mediaFragment = initFragment(new MediaFragment(), masterSecret, dynamicLanguage.getCurrentLocale(), null);
     contactsFragment.setOnContactSelectedListener(this);
     contactsFragment.setOnRefreshListener(this);
 
     adapter.addFragment(chatsFragment, getString(R.string.ConversationListActivity_chats));
     adapter.addFragment(contactsFragment, getString(R.string.ConversationListActivity_contacts));
+    adapter.addFragment(mediaFragment, getString(R.string.ConversationListActivity_media));
     viewPager.setAdapter(adapter);
   }
 
   private void initializeSearch(MenuItem searchViewItem) {
-    SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchViewItem);
+    SearchView searchView = (SearchView)MenuItemCompat.getActionView(searchViewItem);
     searchView.setQueryHint(getString(R.string.ConversationListActivity_search));
     searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
       @Override
@@ -172,6 +175,11 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
         return onQueryTextSubmit(newText);
       }
     });
+
+    if (viewPager.getCurrentItem() == 2) {
+      searchViewItem.setEnabled(false);
+      searchViewItem.setVisible(false);
+    }
 
     MenuItemCompat.setOnActionExpandListener(searchViewItem, new MenuItemCompat.OnActionExpandListener() {
       @Override
@@ -199,12 +207,13 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
     super.onOptionsItemSelected(item);
 
     switch (item.getItemId()) {
+      case R.id.menu_refresh:           handleManualRefresh();   return true;
+      case R.id.menu_applications:      handleApplications();    return true;
       case R.id.menu_new_group:         createGroup();           return true;
+      case R.id.menu_import_export:     handleImportExport();    return true;
       case R.id.menu_settings:          handleDisplaySettings(); return true;
       case R.id.menu_clear_passphrase:  handleClearPassphrase(); return true;
       case R.id.menu_mark_all_read:     handleMarkAllRead();     return true;
-      case R.id.menu_import_export:     handleImportExport();    return true;
-      case R.id.menu_refresh:           handleManualRefresh();   return true;
       case R.id.menu_invite:            handleInviteFriend();    return true;
     }
 
@@ -212,9 +221,9 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
   }
 
   @Override
-  public void onCreateConversation(long threadId, Recipients recipients, int distributionType, long lastSeen) {
+  public void onCreateConversation(long threadId, Recipient recipient, int distributionType, long lastSeen) {
     Intent intent = new Intent(this, ConversationActivity.class);
-    intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+    intent.putExtra(ConversationActivity.ADDRESS_EXTRA, recipient.getAddress());
     intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, threadId);
     intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, distributionType);
     intent.putExtra(ConversationActivity.TIMING_EXTRA, System.currentTimeMillis());
@@ -266,6 +275,11 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
     onRefresh();
   }
 
+  private void handleApplications() {
+    Intent intent = new Intent(this, ApplicationsActivity.class);
+    startActivity(intent);
+  }
+
   private void handleInviteFriend(){
     Intent intent = new Intent(this, InviteActivity.class);
     startActivity(intent);
@@ -277,7 +291,7 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
       public void onChange(boolean selfChange) {
         super.onChange(selfChange);
         Log.w(TAG, "Detected android contact data changed, refreshing cache");
-        RecipientFactory.clearCache(ConversationListActivity.this);
+        Recipient.clearCache(ConversationListActivity.this);
         ConversationListActivity.this.runOnUiThread(new Runnable() {
           @Override
           public void run() {
@@ -288,7 +302,7 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
     };
 
     getContentResolver().registerContentObserver(ContactsContract.Contacts.CONTENT_URI,
-            true, observer);
+                                                 true, observer);
   }
 
   @Override
@@ -298,14 +312,14 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
 
   @Override
   public void onContactSelected(String number) {
-    Recipients recipients = RecipientFactory.getRecipientsFromString(this, number, true);
+    Recipient recipient = Recipient.from(this, Address.fromExternal(this, number), true);
 
     Intent intent = new Intent(this, ConversationActivity.class);
-    intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+    intent.putExtra(ConversationActivity.ADDRESS_EXTRA, recipient.getAddress());
     intent.putExtra(ConversationActivity.TEXT_EXTRA, getIntent().getStringExtra(ConversationActivity.TEXT_EXTRA));
     intent.setDataAndType(getIntent().getData(), getIntent().getType());
 
-    long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipients);
+    long existingThread = DatabaseFactory.getThreadDatabase(this).getThreadIdIfExistsFor(recipient);
 
     intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, existingThread);
     intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);
@@ -321,7 +335,7 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
   @Override
   public void onPageSelected(int position) {
     viewPager.setCurrentItem(position,false);
-    invalidateOptionsMenu();
+    supportInvalidateOptionsMenu();
   }
 
   @Override

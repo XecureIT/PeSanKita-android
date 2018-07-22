@@ -18,7 +18,6 @@
 package org.thoughtcrime.securesms;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -54,22 +53,19 @@ import org.thoughtcrime.securesms.contacts.RecipientsEditor;
 import org.thoughtcrime.securesms.contacts.avatars.ContactColors;
 import org.thoughtcrime.securesms.contacts.avatars.ContactPhotoFactory;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.GroupDatabase;
 import org.thoughtcrime.securesms.database.GroupDatabase.GroupRecord;
-import org.thoughtcrime.securesms.database.NotInDirectoryException;
-import org.thoughtcrime.securesms.database.TextSecureDirectory;
+import org.thoughtcrime.securesms.database.RecipientDatabase;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.groups.GroupManager;
 import org.thoughtcrime.securesms.groups.GroupManager.GroupActionResult;
 import org.thoughtcrime.securesms.mms.RoundedCorners;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.util.BitmapUtil;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.DynamicTheme;
-import org.thoughtcrime.securesms.util.GroupUtil;
 import org.thoughtcrime.securesms.util.SelectedRecipientsAdapter;
 import org.thoughtcrime.securesms.util.SelectedRecipientsAdapter.OnRecipientDeletedListener;
 import org.thoughtcrime.securesms.util.SelectedRecipientsAdapter.RecipientWrapper;
@@ -81,7 +77,6 @@ import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.util.InvalidNumberException;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -105,8 +100,8 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
 
   private final static String TAG = GroupCreateActivity.class.getSimpleName();
 
-  public static final String GROUP_RECIPIENT_EXTRA = "group_recipient";
-  public static final String GROUP_THREAD_EXTRA    = "group_thread";
+  public static final String GROUP_ADDRESS_EXTRA = "group_recipient";
+  public static final String GROUP_THREAD_EXTRA  = "group_thread";
 
   private final DynamicTheme    dynamicTheme    = new DynamicTheme();
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
@@ -186,13 +181,8 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     }
   }
 
-  private static boolean isActiveInDirectory(Context context, Recipient recipient) {
-    try {
-      return TextSecureDirectory.getInstance(context)
-                                .isSecureTextSupported(Util.canonicalizeNumber(context, recipient.getNumber()));
-    } catch (NotInDirectoryException | InvalidNumberException e) {
-      return false;
-    }
+  private static boolean isActiveInDirectory(Recipient recipient) {
+    return recipient.resolve().getRegistered() == RecipientDatabase.RegisteredState.REGISTERED;
   }
 
   private void addSelectedContacts(@NonNull Recipient... recipients) {
@@ -210,7 +200,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     avatar       = ViewUtil.findById(this, R.id.avatar);
     groupName    = ViewUtil.findById(this, R.id.group_name);
     groupName.setEnabled(false);
-      countValue = ViewUtil.findById(this, R.id.Label_count_value);
+    countValue   = ViewUtil.findById(this, R.id.Label_count_value);
     creatingText = ViewUtil.findById(this, R.id.creating_group_text);
     contactsButton = ViewUtil.findById(this, R.id.contacts_button);
     SelectedRecipientsAdapter adapter = new SelectedRecipientsAdapter(this);
@@ -233,17 +223,10 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
   }
 
   private void initializeExistingGroup() {
-    final String encodedGroupId = RecipientFactory.getRecipientForId(this, getIntent().getLongExtra(GROUP_RECIPIENT_EXTRA, -1), true)
-                                                  .getNumber();
-    byte[] groupId;
-    try {
-      groupId = GroupUtil.getDecodedId(encodedGroupId);
-    } catch (IOException ioe) {
-      Log.w(TAG, "Couldn't decode the encoded groupId passed in via intent", ioe);
-      groupId = null;
-    }
-    if (groupId != null) {
-      new FillExistingGroupInfoAsyncTask(this).execute(groupId);
+    final Address groupAddress = getIntent().getParcelableExtra(GROUP_ADDRESS_EXTRA);
+
+    if (groupAddress != null) {
+      new FillExistingGroupInfoAsyncTask(this).execute(groupAddress.toGroupString());
     } else {
       groupName.setEnabled(true);
       avatar.setEnabled(true);
@@ -288,8 +271,8 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
   }
 
   @Override
-  public void onRecipientsPanelUpdate(Recipients recipients) {
-    if (recipients != null) addSelectedContacts(recipients.getRecipientsList());
+  public void onRecipientsPanelUpdate(List<Recipient> recipients) {
+    if (recipients != null && !recipients.isEmpty()) addSelectedContacts(recipients);
   }
 
   private void handleGroupCreate() {
@@ -306,7 +289,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     if (isSignalGroup()) {
       new CreateSignalGroupTask(this, masterSecret, avatarBmp, getGroupName(), getAdapter().getRecipients()).execute();
     } else {
-      new CreateMmsGroupTask(this, getAdapter().getRecipients()).execute();
+      new CreateMmsGroupTask(this, masterSecret, getAdapter().getRecipients()).execute();
     }
   }
 
@@ -321,11 +304,11 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
                               getAdapter().getAdminNumbers().get()).execute();
   }
 
-  private void handleOpenConversation(long threadId, Recipients recipients) {
+  private void handleOpenConversation(long threadId, Recipient recipient) {
     Intent intent = new Intent(this, ConversationActivity.class);
     intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, threadId);
     intent.putExtra(ConversationActivity.DISTRIBUTION_TYPE_EXTRA, ThreadDatabase.DistributionTypes.DEFAULT);
-    intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+    intent.putExtra(ConversationActivity.ADDRESS_EXTRA, recipient.getAddress());
     startActivity(intent);
     finish();
   }
@@ -366,9 +349,12 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     switch (reqCode) {
       case PICK_CONTACT:
         List<String> selected = data.getStringArrayListExtra("contacts");
+
         for (String contact : selected) {
-          final Recipient recipient = RecipientFactory.getRecipientsFromString(this, contact, false).getPrimaryRecipient();
-          if (recipient != null) addSelectedContacts(recipient);
+          Address   address   = Address.fromExternal(this, contact);
+          Recipient recipient = Recipient.from(this, address, false);
+
+          addSelectedContacts(recipient);
         }
         break;
 
@@ -403,7 +389,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
       String localNumber   = TextSecurePreferences.getLocalNumber(activity);
       boolean isLocalOwner = activity.getAdapter().isOwnerNumber(localNumber);
       boolean isLocalAdmin = activity.getAdapter().isAdminNumber(localNumber);
-      if(!Util.isOwnNumber(activity, wrapper.getRecipient().getNumber()) &&
+      if(!Util.isOwnNumber(activity, wrapper.getRecipient().getAddress()) &&
               !wrapper.isOwner() && (isLocalOwner || isLocalAdmin)) {
         List<String> actions = new LinkedList<>();
         actions.add(activity.getString(R.string.GroupCreateActivity_menu_remove_member,
@@ -426,9 +412,9 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
                 break;
               case 1:
                 if(wrapper.isAdmin()) {
-                  handleRevokeAdmin(wrapper.getRecipient().getNumber());
+                  handleRevokeAdmin(wrapper.getRecipient().getAddress().serialize());
                 } else {
-                  handleMakeAdmin(wrapper.getRecipient().getNumber());
+                  handleMakeAdmin(wrapper.getRecipient().getAddress().serialize());
                 }
                 break;
             }
@@ -448,7 +434,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
 
       ArrayList<String> numbers = new ArrayList<String>();
       for (Recipient recipient : getAdapter().getRecipients()) {
-        numbers.add(recipient.getNumber());
+        numbers.add(recipient.getAddress().serialize());
       }
 
       intent.putStringArrayListExtra(ContactSelectionListFragment.PRE_SELECT, numbers);
@@ -457,31 +443,35 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     }
   }
 
-  private static class CreateMmsGroupTask extends AsyncTask<Void,Void,Long> {
-    private GroupCreateActivity activity;
-    private Set<Recipient>      members;
+  private static class CreateMmsGroupTask extends AsyncTask<Void,Void,GroupActionResult> {
+    private final GroupCreateActivity activity;
+    private final MasterSecret        masterSecret;
+    private final Set<Recipient>      members;
 
-    public CreateMmsGroupTask(GroupCreateActivity activity, Set<Recipient> members) {
-      this.activity = activity;
-      this.members  = members;
+    public CreateMmsGroupTask(GroupCreateActivity activity, MasterSecret masterSecret, Set<Recipient> members) {
+      this.activity     = activity;
+      this.masterSecret = masterSecret;
+      this.members      = members;
     }
 
     @Override
-    protected Long doInBackground(Void... avoid) {
-      Recipients recipients = RecipientFactory.getRecipientsFor(activity, members, false);
-      return DatabaseFactory.getThreadDatabase(activity)
-                            .getThreadIdFor(recipients, ThreadDatabase.DistributionTypes.CONVERSATION);
-    }
+    protected GroupActionResult doInBackground(Void... avoid) {
+      List<Address> memberAddresses = new LinkedList<>();
 
-    @Override
-    protected void onPostExecute(Long resultThread) {
-      if (resultThread > -1) {
-        activity.handleOpenConversation(resultThread,
-                                        RecipientFactory.getRecipientsFor(activity, members, true));
-      } else {
-        Toast.makeText(activity, R.string.GroupCreateActivity_contacts_mms_exception, Toast.LENGTH_LONG).show();
-        activity.finish();
+      for (Recipient recipient : members) {
+        memberAddresses.add(recipient.getAddress());
       }
+
+      String    groupId        = DatabaseFactory.getGroupDatabase(activity).getOrCreateGroupForMembers(memberAddresses, true);
+      Recipient groupRecipient = Recipient.from(activity, Address.fromSerialized(groupId), true);
+      long      threadId       = DatabaseFactory.getThreadDatabase(activity).getThreadIdFor(groupRecipient, ThreadDatabase.DistributionTypes.DEFAULT);
+
+      return new GroupActionResult(groupRecipient, threadId);
+    }
+
+    @Override
+    protected void onPostExecute(GroupActionResult result) {
+      activity.handleOpenConversation(result.getThreadId(), result.getGroupRecipient());
     }
 
     @Override
@@ -544,11 +534,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
 
     @Override
     protected Optional<GroupActionResult> doInBackground(Void... aVoid) {
-      try {
-        return Optional.of(GroupManager.createGroup(activity, masterSecret, members, avatar, name));
-      } catch (InvalidNumberException e) {
-        return Optional.absent();
-      }
+      return Optional.of(GroupManager.createGroup(activity, masterSecret, members, avatar, name, false));
     }
 
     @Override
@@ -566,10 +552,10 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
   }
 
   private static class UpdateSignalGroupTask extends SignalGroupTask {
-    private byte[] groupId;
+    private String groupId;
 
     public UpdateSignalGroupTask(GroupCreateActivity activity,
-                                 MasterSecret masterSecret, byte[] groupId, Bitmap avatar, String name,
+                                 MasterSecret masterSecret, String groupId, Bitmap avatar, String name,
                                  Set<Recipient> members, Set<String> admins)
     {
       super(activity, masterSecret, avatar, name, members, null, admins);
@@ -591,7 +577,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
         if (!activity.isFinishing()) {
           Intent intent = activity.getIntent();
           intent.putExtra(GROUP_THREAD_EXTRA, result.get().getThreadId());
-          intent.putExtra(GROUP_RECIPIENT_EXTRA, result.get().getGroupRecipient().getIds());
+          intent.putExtra(GROUP_ADDRESS_EXTRA, result.get().getGroupRecipient().getAddress());
           activity.setResult(RESULT_OK, intent);
           activity.finish();
         }
@@ -629,16 +615,12 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
       final List<Result> results = new LinkedList<>();
 
       for (Recipient recipient : recipients) {
-        boolean isPush        = isActiveInDirectory(activity, recipient);
-        String  recipientE164 = null;
-        try {
-          recipientE164 = Util.canonicalizeNumber(activity, recipient.getNumber());
-        } catch (InvalidNumberException ine) { /* do nothing */ }
+        boolean isPush = isActiveInDirectory(recipient);
 
         if (failIfNotPush && !isPush) {
           results.add(new Result(null, false, activity.getString(R.string.GroupCreateActivity_cannot_add_non_push_to_existing_group,
-                                                                 recipient.getNumber())));
-        } else if (TextUtils.equals(TextSecurePreferences.getLocalNumber(activity), recipientE164)) {
+                                                                 recipient.toShortString())));
+        } else if (TextUtils.equals(TextSecurePreferences.getLocalNumber(activity), recipient.getAddress().serialize())) {
           results.add(new Result(null, false, activity.getString(R.string.GroupCreateActivity_youre_already_in_the_group)));
         } else {
           results.add(new Result(recipient, isPush, null));
@@ -662,7 +644,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     }
   }
 
-  private static class FillExistingGroupInfoAsyncTask extends ProgressDialogAsyncTask<byte[],Void,Optional<GroupData>> {
+  private static class FillExistingGroupInfoAsyncTask extends ProgressDialogAsyncTask<String,Void,Optional<GroupData>> {
     private GroupCreateActivity activity;
 
     public FillExistingGroupInfoAsyncTask(GroupCreateActivity activity) {
@@ -673,22 +655,27 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     }
 
     @Override
-    protected Optional<GroupData> doInBackground(byte[]... groupIds) {
-      final GroupDatabase   db               = DatabaseFactory.getGroupDatabase(activity);
-      final Recipients      recipients       = db.getGroupMembers(groupIds[0], true);
-      final GroupRecord     group            = db.getGroup(groupIds[0]);
-      final Set<Recipient>  existingContacts = new HashSet<>(recipients.getRecipientsList().size());
-      final Set<String>     existingAdmins   = db.getGroupAdmins(groupIds[0]);
-      existingContacts.addAll(recipients.getRecipientsList());
+    protected Optional<GroupData> doInBackground(String... groupIds) {
+      final GroupDatabase         db               = DatabaseFactory.getGroupDatabase(activity);
+      final List<Recipient>       recipients       = db.getGroupMembers(groupIds[0], true);
+      final Optional<GroupRecord> group            = db.getGroup(groupIds[0]);
+      final Set<Recipient>  existingContacts       = new HashSet<>(recipients.size());
+      final Set<Address>    existingAdmins         = db.getGroupAdmins(groupIds[0]);
+      existingContacts.addAll(recipients);
 
-      if (group != null) {
+      final Set<String> admins = new HashSet<>();
+      for (Address admin : existingAdmins) {
+        admins.add(admin.serialize());
+      }
+
+      if (group.isPresent()) {
         return Optional.of(new GroupData(groupIds[0],
                                          existingContacts,
-                                         group.getOwner(),
-                                         existingAdmins,
-                                         BitmapUtil.fromByteArray(group.getAvatar()),
-                                         group.getAvatar(),
-                                         group.getTitle()));
+                                         group.get().getOwner().serialize(),
+                                         admins,
+                                         BitmapUtil.fromByteArray(group.get().getAvatar()),
+                                         group.get().getAvatar(),
+                                         group.get().getTitle()));
       } else {
         return Optional.absent();
       }
@@ -698,42 +685,44 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     protected void onPostExecute(Optional<GroupData> group) {
       super.onPostExecute(group);
         LinkedList<Recipient> members = new LinkedList<>();
-        List <Recipient> savedNumber = new ArrayList<>();
-        List <Recipient> onlyNumber = new ArrayList<>();
+        List<Recipient> savedNumbers  = new ArrayList<>();
+        List<Recipient> onlyNumbers   = new ArrayList<>();
 
         for (Recipient recipient : group.get().recipients) {
-          if(recipient.getName() == null){
-            onlyNumber.add(recipient);
+          if (Util.isOwnNumber(getContext(), recipient.getAddress())) {
+            members.add(recipient);
+          } else if (recipient.getName() == null) {
+            onlyNumbers.add(recipient);
           } else {
-            savedNumber.add(recipient);
+            savedNumbers.add(recipient);
           }
         }
 
-      Collections.sort(savedNumber, new Comparator<Recipient>() {
+      Collections.sort(savedNumbers, new Comparator<Recipient>() {
         @Override
         public int compare(Recipient o1, Recipient o2) {
           return o1.getName().compareToIgnoreCase(o2.getName());
         }
       });
-      Collections.sort(onlyNumber, new Comparator<Recipient>() {
+      Collections.sort(onlyNumbers, new Comparator<Recipient>() {
         @Override
         public int compare(Recipient o1, Recipient o2) {
-          return o1.getNumber().compareToIgnoreCase(o2.getNumber());
+          return o1.getAddress().serialize().compareToIgnoreCase(o2.getAddress().serialize());
         }
       });
-      members.addAll(savedNumber);
-      members.addAll(onlyNumber);
+
+      members.addAll(savedNumbers);
+      members.addAll(onlyNumbers);
 
       if (group.isPresent() && !activity.isFinishing()) {
         activity.groupToUpdate = group;
 
         activity.groupName.setText(group.get().name);
-          activity.countValue.setText(String.valueOf(group.get().recipients.size()));
+        activity.countValue.setText(String.valueOf(group.get().recipients.size()));
         if (group.get().avatarBmp != null) {
           activity.setAvatar(group.get().avatarBytes, group.get().avatarBmp);
         }
-        SelectedRecipientsAdapter adapter = new SelectedRecipientsAdapter(
-                activity, members, group.get().owner, group.get().admins);
+        SelectedRecipientsAdapter adapter = new SelectedRecipientsAdapter(activity, members, group.get().owner, group.get().admins);
         adapter.setOnRecipientDeletedListener(activity);
         activity.lv.setAdapter(adapter);
         activity.lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -744,17 +733,16 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
         });
         activity.updateViewState();
         String localNumber = TextSecurePreferences.getLocalNumber(activity);
-        if(adapter.isOwnerNumber(localNumber) || adapter.isAdminNumber(localNumber)) {
+        if (adapter.isOwnerNumber(localNumber) || adapter.isAdminNumber(localNumber)) {
           activity.groupName.setEnabled(true);
           activity.avatar.setEnabled(true);
           activity.recipientsEditor.setVisibility(View.VISIBLE);
           activity.contactsButton.setVisibility(View.VISIBLE);
         } else {
           activity.updateGroup = 0;
-          activity.invalidateOptionsMenu();
+          activity.supportInvalidateOptionsMenu();
         }
-      }
-      else if(!group.isPresent()) {
+      } else if (!group.isPresent()) {
         activity.groupName.setEnabled(true);
         activity.avatar.setEnabled(true);
         activity.recipientsEditor.setVisibility(View.VISIBLE);
@@ -774,7 +762,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
   }
 
   private static class GroupData {
-    byte[]         id;
+    String         id;
     Set<Recipient> recipients;
     String         owner;
     Set<String>    admins;
@@ -782,7 +770,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     byte[]         avatarBytes;
     String         name;
 
-    public GroupData(byte[] id, Set<Recipient> recipients, String owner, Set<String> admins,
+    public GroupData(String id, Set<Recipient> recipients, String owner, Set<String> admins,
                      Bitmap avatarBmp, byte[] avatarBytes, String name) {
       this.id          = id;
       this.recipients  = recipients;

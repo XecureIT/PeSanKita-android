@@ -29,7 +29,7 @@ public abstract class Database {
   private   static final String CONVERSATION_URI      = "content://xecurechat/thread/";
   private   static final String CONVERSATION_LIST_URI = "content://xecurechat/conversation-list";
 
-  protected       SQLiteOpenHelper databaseHelper;
+  protected SQLiteOpenHelper databaseHelper;
   protected final Context context;
 
   public Database(Context context, SQLiteOpenHelper databaseHelper) {

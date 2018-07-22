@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:layout_width="match_parent"
+     android:background="?application_background2"
+     android:padding="@dimen/application_padding"
+     android:layout_height="match_parent">
+
+    <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:background="?application_background"
+            android:orientation="vertical"
+            android:padding="@dimen/application_padding"
+            android:paddingBottom="0dp"
+            android:weightSum="1">
+
+            <ImageView
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_gravity="center"
+                android:src="@drawable/hkki_logo" />
+
+            <TextView
+                style="@style/Registration.Description"
+                android:layout_width="fill_parent"
+                android:layout_marginBottom="16dip"
+                android:layout_marginTop="16dip"
+                android:gravity="start"
+                android:text="@string/application_hkki_event" />
+
+            <TextView
+                style="@style/Registration.Description"
+                android:layout_width="fill_parent"
+                android:layout_marginBottom="16dip"
+                android:autoLink="web"
+                android:gravity="start"
+                android:linksClickable="true"
+                android:text="https://kitsia.id/event/11/hkki-2018/" />
+
+            <TextView
+                style="@style/Registration.Description"
+                android:layout_width="fill_parent"
+                android:layout_marginBottom="16dip"
+                android:gravity="start"
+                android:text="@string/application_hkki_declaration" />
+
+            <TextView
+                style="@style/Registration.Description"
+                android:layout_width="fill_parent"
+                android:layout_marginBottom="16dip"
+                android:autoLink="web"
+                android:gravity="start"
+                android:linksClickable="true"
+                android:text="https://kitsia.id/blog/21/deklarasi-hkki-2018/" />
+
+            <TextView
+                style="@style/Registration.Description"
+                android:layout_width="fill_parent"
+                android:layout_marginBottom="16dip"
+                android:gravity="start"
+                android:text="@string/application_hkki_material" />
+
+            <TextView
+                style="@style/Registration.Description"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="16dip"
+                android:autoLink="web"
+                android:gravity="start"
+                android:linksClickable="true"
+                android:text="https://kitsia.id/hkki/forum/" />
+        </LinearLayout>
+    </ScrollView>
+</FrameLayout>

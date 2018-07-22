@@ -27,6 +27,7 @@ import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.style.ForegroundColorSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -35,6 +36,7 @@ import android.widget.TextView;
 
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.components.RecyclerViewFastScroller.FastScrollAdapter;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.util.StickyHeaderDecoration.StickyHeaderAdapter;
 import org.thoughtcrime.securesms.contacts.ContactSelectionListAdapter.HeaderViewHolder;
 import org.thoughtcrime.securesms.contacts.ContactSelectionListAdapter.ViewHolder;
@@ -131,7 +133,7 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
     int color = (contactType == ContactsDatabase.PUSH_TYPE) ? drawables.getColor(0, 0xa0000000) :
                 drawables.getColor(1, 0xff000000);
 
-    boolean preSelected = numbers != null && numbers.contains(number);
+    boolean preSelected = numbers != null && numbers.contains(Address.fromExternal(getContext(), number).serialize());
 
     viewHolder.getView().unbind();
     viewHolder.getView().set(id, contactType, name, number, labelText, color, multiSelect);

@@ -16,22 +16,33 @@
  */
 package org.thoughtcrime.securesms;
 
+import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.res.TypedArray;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Build.VERSION;
 import android.os.Bundle;
 import android.preference.Preference;
+import android.support.annotation.ColorInt;
+import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.preference.PreferenceFragment;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.graphics.drawable.DrawableCompat;
+import android.support.v7.app.AppCompatActivity;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.preferences.AdvancedPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AppProtectionPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AppearancePreferenceFragment;
+import org.thoughtcrime.securesms.preferences.CorrectedPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.NotificationsPreferenceFragment;
+import org.thoughtcrime.securesms.preferences.ProfilePreference;
 import org.thoughtcrime.securesms.preferences.SmsMmsPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.ChatsPreferenceFragment;
 import org.thoughtcrime.securesms.service.KeyCachingService;
@@ -51,6 +62,7 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
 {
   private static final String TAG = ApplicationPreferencesActivity.class.getSimpleName();
 
+  private static final String PREFERENCE_CATEGORY_PROFILE        = "preference_category_profile";
   private static final String PREFERENCE_CATEGORY_SMS_MMS        = "preference_category_sms_mms";
   private static final String PREFERENCE_CATEGORY_NOTIFICATIONS  = "preference_category_notifications";
   private static final String PREFERENCE_CATEGORY_APP_PROTECTION = "preference_category_app_protection";
@@ -121,13 +133,16 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
     }
   }
 
-  public static class ApplicationPreferenceFragment extends PreferenceFragment {
+  public static class ApplicationPreferenceFragment extends CorrectedPreferenceFragment {
+
     @Override
     public void onCreate(Bundle icicle) {
       super.onCreate(icicle);
       addPreferencesFromResource(R.xml.preferences);
 
       MasterSecret masterSecret = getArguments().getParcelable("master_secret");
+      this.findPreference(PREFERENCE_CATEGORY_PROFILE)
+          .setOnPreferenceClickListener(new ProfileClickListener());
 //      this.findPreference(PREFERENCE_CATEGORY_SMS_MMS)
 //        .setOnPreferenceClickListener(new CategoryClickListener(masterSecret, PREFERENCE_CATEGORY_SMS_MMS));
       this.findPreference(PREFERENCE_CATEGORY_NOTIFICATIONS)
@@ -142,6 +157,10 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
         .setOnPreferenceClickListener(new CategoryClickListener(masterSecret, PREFERENCE_CATEGORY_DEVICES));
       this.findPreference(PREFERENCE_CATEGORY_ADVANCED)
         .setOnPreferenceClickListener(new CategoryClickListener(masterSecret, PREFERENCE_CATEGORY_ADVANCED));
+
+      if (VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP && VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+        tintIcons(getActivity());
+      }
     }
 
     @Override
@@ -153,6 +172,8 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
     }
 
     private void setCategorySummaries() {
+      ((ProfilePreference)this.findPreference(PREFERENCE_CATEGORY_PROFILE)).refresh();
+
 //      this.findPreference(PREFERENCE_CATEGORY_SMS_MMS)
 //          .setSummary(SmsMmsPreferenceFragment.getSummary(getActivity()));
       this.findPreference(PREFERENCE_CATEGORY_NOTIFICATIONS)
@@ -175,6 +196,38 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
       if (devicePreference != null && !TextSecurePreferences.isPushRegistered(getActivity())) {
         getPreferenceScreen().removePreference(devicePreference);
       }
+    }
+
+    @TargetApi(11)
+    private void tintIcons(Context context) {
+      Drawable sms           = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_textsms_white_24dp));
+      Drawable notifications = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_notifications_white_24dp));
+      Drawable privacy       = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_security_white_24dp));
+      Drawable appearance    = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_brightness_6_white_24dp));
+      Drawable chats         = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_forum_white_24dp));
+      Drawable devices       = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_laptop_white_24dp));
+      Drawable advanced      = DrawableCompat.wrap(ContextCompat.getDrawable(context, R.drawable.ic_advanced_white_24dp));
+
+      int[]      tintAttr   = new int[]{R.attr.pref_icon_tint};
+      TypedArray typedArray = context.obtainStyledAttributes(tintAttr);
+      int        color      = typedArray.getColor(0, 0x0);
+      typedArray.recycle();
+
+      DrawableCompat.setTint(sms, color);
+      DrawableCompat.setTint(notifications, color);
+      DrawableCompat.setTint(privacy, color);
+      DrawableCompat.setTint(appearance, color);
+      DrawableCompat.setTint(chats, color);
+      DrawableCompat.setTint(devices, color);
+      DrawableCompat.setTint(advanced, color);
+
+      this.findPreference(PREFERENCE_CATEGORY_SMS_MMS).setIcon(sms);
+      this.findPreference(PREFERENCE_CATEGORY_NOTIFICATIONS).setIcon(notifications);
+      this.findPreference(PREFERENCE_CATEGORY_APP_PROTECTION).setIcon(privacy);
+      this.findPreference(PREFERENCE_CATEGORY_APPEARANCE).setIcon(appearance);
+      this.findPreference(PREFERENCE_CATEGORY_CHATS).setIcon(chats);
+      this.findPreference(PREFERENCE_CATEGORY_DEVICES).setIcon(devices);
+      this.findPreference(PREFERENCE_CATEGORY_ADVANCED).setIcon(advanced);
     }
 
     private class CategoryClickListener implements Preference.OnPreferenceClickListener {
@@ -232,5 +285,18 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
         return true;
       }
     }
+
+    private class ProfileClickListener implements Preference.OnPreferenceClickListener {
+      @Override
+      public boolean onPreferenceClick(Preference preference) {
+        Intent intent = new Intent(preference.getContext(), CreateProfileActivity.class);
+        intent.putExtra(CreateProfileActivity.EXCLUDE_SYSTEM, true);
+
+        getActivity().startActivity(intent);
+//        ((BaseActionBarActivity)getActivity()).startActivitySceneTransition(intent, getActivity().findViewById(R.id.avatar), "avatar");
+        return true;
+      }
+    }
   }
+
 }

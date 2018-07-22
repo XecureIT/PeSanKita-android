@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:background="?application_background2"
+             android:padding="@dimen/application_padding"
+             android:layout_height="match_parent">
+
+    <LinearLayout
+        android:padding="@dimen/application_padding"
+        android:paddingBottom="0dp"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="?application_background"
+        android:weightSum="1">
+
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_gravity="center"
+            android:src="@drawable/kitsia_logo"
+            android:layout_marginBottom="@dimen/application_padding"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/application_kitsia_invitation_title"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            android:layout_marginBottom="@dimen/application_padding"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/application_kitsia_invitation_description"
+            android:textSize="18dp"
+            android:textStyle="bold"
+            android:layout_marginBottom="@dimen/application_padding"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:text="@string/application_kitsia_name"
+            android:textSize="@dimen/application_name"/>
+
+        <EditText
+            android:id="@+id/kitsia_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textCapSentences"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:text="@string/application_kitsia_email"
+            android:textSize="@dimen/application_name"/>
+
+        <EditText
+            android:id="@+id/kitsia_email"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textEmailAddress"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:singleLine="true"
+            android:text="@string/application_kitsia_source"
+            android:textSize="@dimen/application_name"/>
+
+        <EditText
+            android:id="@+id/kitsia_source"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textCapSentences"/>
+
+        <Button
+            android:id="@+id/kitsia_invite"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorAccent"
+            android:textColor="@color/white"
+            android:layout_marginTop="20dp"
+            android:text="@string/application_kitsia_invite"/>
+    </LinearLayout>
+</FrameLayout>

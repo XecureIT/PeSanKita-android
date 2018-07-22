@@ -32,19 +32,26 @@ import org.thoughtcrime.securesms.jobs.CreateSignedPreKeyJob;
 import org.thoughtcrime.securesms.jobs.GcmRefreshJob;
 import org.thoughtcrime.securesms.jobs.persistence.EncryptingJobSerializer;
 import org.thoughtcrime.securesms.jobs.requirements.MasterSecretRequirementProvider;
-import org.thoughtcrime.securesms.jobs.requirements.MediaNetworkRequirementProvider;
 import org.thoughtcrime.securesms.jobs.requirements.ServiceRequirementProvider;
 import org.thoughtcrime.securesms.push.SignalServiceNetworkAccess;
+import org.thoughtcrime.securesms.service.AutoRemoveListener;
 import org.thoughtcrime.securesms.service.DirectoryRefreshListener;
 import org.thoughtcrime.securesms.service.ExpiringMessageManager;
 import org.thoughtcrime.securesms.service.RotateSignedPreKeyListener;
+import org.thoughtcrime.securesms.service.UpdateApkRefreshListener;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.voiceengine.WebRtcAudioManager;
+import org.webrtc.voiceengine.WebRtcAudioUtils;
 import org.whispersystems.jobqueue.JobManager;
 import org.whispersystems.jobqueue.dependencies.DependencyInjector;
 import org.whispersystems.jobqueue.requirements.NetworkRequirementProvider;
 import org.whispersystems.libsignal.logging.SignalProtocolLoggerProvider;
 import org.whispersystems.libsignal.util.AndroidSignalProtocolLogger;
+
+import java.util.concurrent.TimeUnit;
+import java.util.HashSet;
+import java.util.Set;
 
 import dagger.ObjectGraph;
 
@@ -64,8 +71,6 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
   private JobManager             jobManager;
   private ObjectGraph            objectGraph;
 
-  private MediaNetworkRequirementProvider mediaNetworkRequirementProvider = new MediaNetworkRequirementProvider();
-
   public static ApplicationContext getInstance(Context context) {
     return (ApplicationContext)context.getApplicationContext();
   }
@@ -82,10 +87,7 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
     initializeSignedPreKeyCheck();
     initializePeriodicTasks();
     initializeCircumvention();
-
-    if (Build.VERSION.SDK_INT >= 11) {
-      PeerConnectionFactory.initializeAndroidGlobals(this, true, true, true);
-    }
+    //initializeWebRtc();
   }
 
   @Override
@@ -118,14 +120,9 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
                                 .withJobSerializer(new EncryptingJobSerializer())
                                 .withRequirementProviders(new MasterSecretRequirementProvider(this),
                                                           new ServiceRequirementProvider(this),
-                                                          new NetworkRequirementProvider(this),
-                                                          mediaNetworkRequirementProvider)
+                                                          new NetworkRequirementProvider(this))
                                 .withConsumerThreads(5)
                                 .build();
-  }
-
-  public void notifyMediaControlEvent() {
-    mediaNetworkRequirementProvider.notifyMediaControlEvent();
   }
 
   private void initializeDependencyInjection() {
@@ -135,7 +132,11 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
 
   private void initializeGcmCheck() {
     if (TextSecurePreferences.isPushRegistered(this)) {
-      this.jobManager.add(new GcmRefreshJob(this));
+      long nextSetTime = TextSecurePreferences.getGcmRegistrationIdLastSetTime(this) + TimeUnit.HOURS.toMillis(6);
+
+      if (TextSecurePreferences.getGcmRegistrationId(this) == null || nextSetTime <= System.currentTimeMillis()) {
+        this.jobManager.add(new GcmRefreshJob(this));
+      }
     }
   }
 
@@ -152,10 +153,42 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
   private void initializePeriodicTasks() {
     RotateSignedPreKeyListener.schedule(this);
     DirectoryRefreshListener.schedule(this);
+    AutoRemoveListener.schedule(this);
+
+    if (BuildConfig.PLAY_STORE_DISABLED) {
+      //UpdateApkRefreshListener.schedule(this);
+    }
+  }
+
+  private void initializeWebRtc() {
+    try {
+      Set<String> HARDWARE_AEC_BLACKLIST = new HashSet<String>() {{
+        add("Pixel");
+        add("Pixel XL");
+        add("Moto G5");
+      }};
+
+      Set<String> OPEN_SL_ES_WHITELIST = new HashSet<String>() {{
+        add("Pixel");
+        add("Pixel XL");
+      }};
+
+      if (Build.VERSION.SDK_INT >= 11) {
+        if (HARDWARE_AEC_BLACKLIST.contains(Build.MODEL)) {
+          WebRtcAudioUtils.setWebRtcBasedAcousticEchoCanceler(true);
+        }
+        if (!OPEN_SL_ES_WHITELIST.contains(Build.MODEL)) {
+          WebRtcAudioManager.setBlacklistDeviceForOpenSLESUsage(true);
+        }
+        PeerConnectionFactory.initializeAndroidGlobals(this, true, true, true);
+      }
+    } catch (UnsatisfiedLinkError e) {
+      Log.w(TAG, e);
+    }
   }
 
   private void initializeCircumvention() {
-    new AsyncTask<Void, Void, Void>() {
+    AsyncTask<Void, Void, Void> task = new AsyncTask<Void, Void, Void>() {
       @Override
       protected Void doInBackground(Void... params) {
         if (new SignalServiceNetworkAccess(ApplicationContext.this).isCensored(ApplicationContext.this)) {
@@ -167,7 +200,10 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
         }
         return null;
       }
-    }.execute();
+    };
+
+    if (Build.VERSION.SDK_INT >= 11) task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    else                             task.execute();
   }
 
 }

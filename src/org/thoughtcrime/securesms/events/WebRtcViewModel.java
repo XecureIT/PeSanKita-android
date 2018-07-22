@@ -40,8 +40,8 @@ public class WebRtcViewModel {
                          boolean isBluetoothAvailable, boolean isMicrophoneEnabled)
   {
     this(state, recipient, null,
-            localVideoEnabled, remoteVideoEnabled,
-            isBluetoothAvailable, isMicrophoneEnabled);
+         localVideoEnabled, remoteVideoEnabled,
+         isBluetoothAvailable, isMicrophoneEnabled);
   }
 
   public WebRtcViewModel(@NonNull State state, @NonNull Recipient recipient,
@@ -88,6 +88,6 @@ public class WebRtcViewModel {
   }
 
   public String toString() {
-    return "[State: " + state + ", recipient: " + recipient.getNumber() + ", identity: " + identityKey + ", remoteVideo: " + remoteVideoEnabled + ", localVideo: " + localVideoEnabled + "]";
+    return "[State: " + state + ", recipient: " + recipient.getAddress() + ", identity: " + identityKey + ", remoteVideo: " + remoteVideoEnabled + ", localVideo: " + localVideoEnabled + "]";
   }
 }

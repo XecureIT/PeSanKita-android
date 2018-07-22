@@ -25,7 +25,7 @@ import android.support.annotation.NonNull;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.attachments.Attachment;
 
-import ws.com.google.android.mms.ContentType;
+import org.thoughtcrime.securesms.util.MediaUtil;
 
 public class ImageSlide extends Slide {
 
@@ -36,7 +36,7 @@ public class ImageSlide extends Slide {
   }
 
   public ImageSlide(Context context, Uri uri, long size) {
-    super(context, constructAttachmentFromUri(context, uri, ContentType.IMAGE_JPEG, size, true));
+    super(context, constructAttachmentFromUri(context, uri, MediaUtil.IMAGE_JPEG, size, true, null, false));
   }
 
   @Override

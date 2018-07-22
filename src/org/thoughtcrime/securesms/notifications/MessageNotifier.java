@@ -34,10 +34,7 @@ import android.service.notification.StatusBarNotification;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationManagerCompat;
-import android.text.Spannable;
-import android.text.SpannableString;
 import android.text.TextUtils;
-import android.text.style.StyleSpan;
 import android.util.Log;
 
 import org.thoughtcrime.securesms.ConversationActivity;
@@ -46,15 +43,12 @@ import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.MessagingDatabase.MarkedMessageInfo;
 import org.thoughtcrime.securesms.database.MmsSmsDatabase;
-import org.thoughtcrime.securesms.database.PushDatabase;
 import org.thoughtcrime.securesms.database.SmsDatabase;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.database.model.MediaMmsMessageRecord;
 import org.thoughtcrime.securesms.database.model.MessageRecord;
 import org.thoughtcrime.securesms.mms.SlideDeck;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
 import org.thoughtcrime.securesms.service.KeyCachingService;
 import org.thoughtcrime.securesms.service.MessageRetrievalService;
 import org.thoughtcrime.securesms.util.ServiceUtil;
@@ -62,7 +56,6 @@ import org.thoughtcrime.securesms.util.SpanUtil;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.webrtc.CallNotificationBuilder;
 import org.whispersystems.signalservice.internal.util.Util;
-import org.whispersystems.signalservice.api.messages.SignalServiceEnvelope;
 
 import java.util.HashSet;
 import java.util.List;
@@ -90,6 +83,7 @@ public class MessageNotifier {
   public static final  String EXTRA_REMOTE_REPLY = "extra_remote_reply";
 
   private static final  int   SUMMARY_NOTIFICATION_ID   = 1338;
+  private static final int    PENDING_MESSAGES_ID       = 1111;
   private static final String NOTIFICATION_GROUP        = "messages";
   private static final long   MIN_AUDIBLE_PERIOD_MILLIS = TimeUnit.SECONDS.toMillis(2);
   private static final long   DESKTOP_ACTIVITY_PERIOD   = TimeUnit.MINUTES.toMillis(1);
@@ -107,12 +101,12 @@ public class MessageNotifier {
     lastDesktopActivityTimestamp = timestamp;
   }
 
-  public static void notifyMessageDeliveryFailed(Context context, Recipients recipients, long threadId) {
+  public static void notifyMessageDeliveryFailed(Context context, Recipient recipient, long threadId) {
     if (visibleThread == threadId) {
-      sendInThreadNotification(context, recipients);
+      sendInThreadNotification(context, recipient);
     } else {
       Intent intent = new Intent(context, ConversationActivity.class);
-      intent.putExtra(ConversationActivity.RECIPIENTS_EXTRA, recipients.getIds());
+      intent.putExtra(ConversationActivity.ADDRESS_EXTRA, recipient.getAddress());
       intent.putExtra(ConversationActivity.THREAD_ID_EXTRA, threadId);
       intent.setData((Uri.parse("custom://" + System.currentTimeMillis())));
 
@@ -120,6 +114,15 @@ public class MessageNotifier {
       ((NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE))
         .notify((int)threadId, builder.build());
     }
+  }
+
+  public static void notifyMessagesPending(Context context) {
+    if (!TextSecurePreferences.isNotificationsEnabled(context)) {
+      return;
+    }
+
+    PendingMessageNotificationBuilder builder = new PendingMessageNotificationBuilder(context, TextSecurePreferences.getNotificationPrivacy(context));
+    ServiceUtil.getNotificationManager(context).notify(PENDING_MESSAGES_ID, builder.build());
   }
 
   public static void cancelDelayedNotifications() {
@@ -157,9 +160,10 @@ public class MessageNotifier {
           boolean validNotification = false;
 
           if (notification.getId() != SUMMARY_NOTIFICATION_ID &&
-                  notification.getId() != CallNotificationBuilder.WEBRTC_NOTIFICATION   &&
-                  notification.getId() != KeyCachingService.SERVICE_RUNNING_ID          &&
-                  notification.getId() != MessageRetrievalService.FOREGROUND_ID)
+              notification.getId() != CallNotificationBuilder.WEBRTC_NOTIFICATION   &&
+              notification.getId() != KeyCachingService.SERVICE_RUNNING_ID          &&
+              notification.getId() != MessageRetrievalService.FOREGROUND_ID         &&
+              notification.getId() != PENDING_MESSAGES_ID)
           {
             for (NotificationItem item : notificationState.getNotifications()) {
               if (notification.getId() == (SUMMARY_NOTIFICATION_ID + item.getThreadId())) {
@@ -185,7 +189,7 @@ public class MessageNotifier {
       return;
     }
 
-    updateNotification(context, masterSecret, false, false, 0);
+    updateNotification(context, masterSecret, false, 0);
   }
 
   public static void updateNotification(@NonNull  Context context,
@@ -196,29 +200,20 @@ public class MessageNotifier {
       Log.w(TAG, "Scheduling delayed notification...");
       executor.execute(new DelayedNotification(context, masterSecret, threadId));
     } else {
-      updateNotification(context, masterSecret, false, threadId, true);
+      updateNotification(context, masterSecret, threadId, true);
     }
   }
 
   public static void updateNotification(@NonNull  Context context,
                                         @Nullable MasterSecret masterSecret,
-                                        boolean   includePushDatabase,
-                                        long      threadId)
-  {
-    updateNotification(context, masterSecret, includePushDatabase, threadId, true);
-  }
-
-  public static void updateNotification(@NonNull  Context context,
-                                        @Nullable MasterSecret masterSecret,
-                                        boolean   includePushDatabase,
                                         long      threadId,
                                         boolean   signal)
   {
     boolean    isVisible  = visibleThread == threadId;
 
     ThreadDatabase threads    = DatabaseFactory.getThreadDatabase(context);
-    Recipients     recipients = DatabaseFactory.getThreadDatabase(context)
-                                               .getRecipientsForThreadId(threadId);
+    Recipient      recipients = DatabaseFactory.getThreadDatabase(context)
+                                               .getRecipientForThreadId(threadId);
 
     if (isVisible) {
       List<MarkedMessageInfo> messageIds = threads.setRead(threadId, false);
@@ -232,16 +227,15 @@ public class MessageNotifier {
     }
 
     if (isVisible) {
-      sendInThreadNotification(context, threads.getRecipientsForThreadId(threadId));
+      sendInThreadNotification(context, threads.getRecipientForThreadId(threadId));
     } else {
-      updateNotification(context, masterSecret, signal, includePushDatabase, 0);
+      updateNotification(context, masterSecret, signal, 0);
     }
   }
 
   private static void updateNotification(@NonNull  Context context,
                                          @Nullable MasterSecret masterSecret,
                                          boolean signal,
-                                         boolean includePushDatabase,
                                          int     reminderCount)
   {
     Cursor telcoCursor = null;
@@ -261,10 +255,6 @@ public class MessageNotifier {
       }
 
       NotificationState notificationState = constructNotificationState(context, masterSecret, telcoCursor);
-
-      if (includePushDatabase) {
-        appendPushNotificationState(context, notificationState, pushCursor);
-      }
 
       if (signal && (System.currentTimeMillis() - lastAudibleNotification) < MIN_AUDIBLE_PERIOD_MILLIS) {
         signal = false;
@@ -308,33 +298,34 @@ public class MessageNotifier {
 
     SingleRecipientNotificationBuilder builder        = new SingleRecipientNotificationBuilder(context, masterSecret, TextSecurePreferences.getNotificationPrivacy(context));
     List<NotificationItem>             notifications  = notificationState.getNotifications();
-    Recipients                         recipients     = notifications.get(0).getRecipients();
+    Recipient                          recipient      = notifications.get(0).getRecipient();
     int                                notificationId = (int) (SUMMARY_NOTIFICATION_ID + (bundled ? notifications.get(0).getThreadId() : 0));
 
 
-    builder.setThread(notifications.get(0).getRecipients());
+    builder.setThread(notifications.get(0).getRecipient());
     builder.setMessageCount(notificationState.getMessageCount());
-    builder.setPrimaryMessageBody(recipients, notifications.get(0).getIndividualRecipient(),
+    builder.setPrimaryMessageBody(recipient, notifications.get(0).getIndividualRecipient(),
                                   notifications.get(0).getText(), notifications.get(0).getSlideDeck());
     builder.setContentIntent(notifications.get(0).getPendingIntent(context));
     builder.setGroup(NOTIFICATION_GROUP);
+    builder.setDeleteIntent(notificationState.getDeleteIntent(context));
 
     long timestamp = notifications.get(0).getTimestamp();
     if (timestamp != 0) builder.setWhen(timestamp);
 
     builder.addActions(masterSecret,
                        notificationState.getMarkAsReadIntent(context, notificationId),
-                       notificationState.getQuickReplyIntent(context, notifications.get(0).getRecipients()),
-                       notificationState.getRemoteReplyIntent(context, notifications.get(0).getRecipients()));
+                       notificationState.getQuickReplyIntent(context, notifications.get(0).getRecipient()),
+                       notificationState.getRemoteReplyIntent(context, notifications.get(0).getRecipient()));
 
-    builder.addAndroidAutoAction(notificationState.getAndroidAutoReplyIntent(context, notifications.get(0).getRecipients()),
+    builder.addAndroidAutoAction(notificationState.getAndroidAutoReplyIntent(context, notifications.get(0).getRecipient()),
                                  notificationState.getAndroidAutoHeardIntent(context, notificationId), notifications.get(0).getTimestamp());
 
     ListIterator<NotificationItem> iterator = notifications.listIterator(notifications.size());
 
     while(iterator.hasPrevious()) {
       NotificationItem item = iterator.previous();
-      builder.addMessageBody(item.getRecipients(), item.getIndividualRecipient(), item.getText());
+      builder.addMessageBody(item.getRecipient(), item.getIndividualRecipient(), item.getText());
     }
 
     if (signal) {
@@ -360,6 +351,7 @@ public class MessageNotifier {
     builder.setMessageCount(notificationState.getMessageCount(), notificationState.getThreadCount());
     builder.setMostRecentSender(notifications.get(0).getIndividualRecipient());
     builder.setGroup(NOTIFICATION_GROUP);
+    builder.setDeleteIntent(notificationState.getDeleteIntent(context));
 
     long timestamp = notifications.get(0).getTimestamp();
     if (timestamp != 0) builder.setWhen(timestamp);
@@ -382,14 +374,14 @@ public class MessageNotifier {
     NotificationManagerCompat.from(context).notify(SUMMARY_NOTIFICATION_ID, builder.build());
   }
 
-  private static void sendInThreadNotification(Context context, Recipients recipients) {
+  private static void sendInThreadNotification(Context context, Recipient recipient) {
     if (!TextSecurePreferences.isInThreadNotifications(context) ||
         ServiceUtil.getAudioManager(context).getRingerMode() != AudioManager.RINGER_MODE_NORMAL)
     {
       return;
     }
 
-    Uri uri = recipients != null ? recipients.getRingtone() : null;
+    Uri uri = recipient != null ? recipient.getRingtone() : null;
 
     if (uri == null) {
       String ringtone = TextSecurePreferences.getNotificationRingtone(context);
@@ -430,33 +422,6 @@ public class MessageNotifier {
     ringtone.play();
   }
 
-  private static void appendPushNotificationState(@NonNull Context context,
-                                                  @NonNull NotificationState notificationState,
-                                                  @NonNull Cursor cursor)
-  {
-    PushDatabase.Reader reader = null;
-    SignalServiceEnvelope envelope;
-
-    try {
-      reader = DatabaseFactory.getPushDatabase(context).readerFor(cursor);
-
-      while ((envelope = reader.getNext()) != null) {
-        Recipients      recipients = RecipientFactory.getRecipientsFromString(context, envelope.getSource(), false);
-        Recipient       recipient  = recipients.getPrimaryRecipient();
-        long            threadId   = DatabaseFactory.getThreadDatabase(context).getThreadIdFor(recipients);
-        SpannableString body       = new SpannableString(context.getString(R.string.MessageNotifier_locked_message));
-        body.setSpan(new StyleSpan(android.graphics.Typeface.ITALIC), 0, body.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-        if (!recipients.isMuted()) {
-          notificationState.addNotification(new NotificationItem(recipient, recipients, null, threadId, body, 0, null));
-        }
-      }
-    } finally {
-      if (reader != null)
-        reader.close();
-    }
-  }
-
   private static NotificationState constructNotificationState(@NonNull  Context context,
                                                               @Nullable MasterSecret masterSecret,
                                                               @NonNull  Cursor cursor)
@@ -469,17 +434,19 @@ public class MessageNotifier {
     else                      reader = DatabaseFactory.getMmsSmsDatabase(context).readerFor(cursor, masterSecret);
 
     while ((record = reader.getNext()) != null) {
-      Recipient    recipient        = record.getIndividualRecipient();
-      Recipients   recipients       = record.getRecipients();
-      long         threadId         = record.getThreadId();
-      CharSequence body             = record.getDisplayBody();
-      Recipients   threadRecipients = null;
-      SlideDeck    slideDeck        = null;
-      long         timestamp        = record.getTimestamp();
-      
+      long         id                    = record.getId();
+      boolean      mms                   = record.isMms() || record.isMmsNotification();
+      Recipient    recipient             = record.getIndividualRecipient();
+      Recipient    conversationRecipient = record.getRecipient();
+      long         threadId              = record.getThreadId();
+      CharSequence body                  = record.getDisplayBody();
+      Recipient    threadRecipients      = null;
+      SlideDeck    slideDeck             = null;
+      long         timestamp             = record.getTimestamp();
+
 
       if (threadId != -1) {
-        threadRecipients = DatabaseFactory.getThreadDatabase(context).getRecipientsForThreadId(threadId);
+        threadRecipients = DatabaseFactory.getThreadDatabase(context).getRecipientForThreadId(threadId);
       }
 
       if (SmsDatabase.Types.isDecryptInProgressType(record.getType()) || !record.getBody().isPlaintext()) {
@@ -495,7 +462,7 @@ public class MessageNotifier {
       }
 
       if (threadRecipients == null || !threadRecipients.isMuted()) {
-        notificationState.addNotification(new NotificationItem(recipient, recipients, threadRecipients, threadId, body, timestamp, slideDeck));
+        notificationState.addNotification(new NotificationItem(id, mms, recipient, conversationRecipient, threadRecipients, threadId, body, timestamp, slideDeck));
       }
     }
 
@@ -529,7 +496,7 @@ public class MessageNotifier {
     alarmManager.set(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + timeout, pendingIntent);
   }
 
-  private static void clearReminder(Context context) {
+  public static void clearReminder(Context context) {
     Intent        alarmIntent   = new Intent(ReminderReceiver.REMINDER_ACTION);
     PendingIntent pendingIntent = PendingIntent.getBroadcast(context, 0, alarmIntent, PendingIntent.FLAG_CANCEL_CURRENT);
     AlarmManager  alarmManager  = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -538,7 +505,7 @@ public class MessageNotifier {
 
   public static class ReminderReceiver extends BroadcastReceiver {
 
-    public static final String REMINDER_ACTION = "org.thoughtcrime.securesms.MessageNotifier.REMINDER_ACTION";
+    public static final String REMINDER_ACTION = "id.kita.pesan.secure.MessageNotifier.REMINDER_ACTION";
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
@@ -547,21 +514,11 @@ public class MessageNotifier {
         protected Void doInBackground(Void... params) {
           MasterSecret masterSecret  = KeyCachingService.getMasterSecret(context);
           int          reminderCount = intent.getIntExtra("reminder_count", 0);
-          MessageNotifier.updateNotification(context, masterSecret, true, false, reminderCount + 1);
+          MessageNotifier.updateNotification(context, masterSecret, true, reminderCount + 1);
 
           return null;
         }
       }.execute();
-    }
-  }
-
-  public static class DeleteReceiver extends BroadcastReceiver {
-
-    public static final String DELETE_REMINDER_ACTION = "org.thoughtcrime.securesms.MessageNotifier.DELETE_REMINDER_ACTION";
-
-    @Override
-    public void onReceive(Context context, Intent intent) {
-      clearReminder(context);
     }
   }
 
@@ -597,7 +554,7 @@ public class MessageNotifier {
 
       if (!canceled.get()) {
         Log.w(TAG, "Not canceled, notifying...");
-        MessageNotifier.updateNotification(context, masterSecret, false, threadId, true);
+        MessageNotifier.updateNotification(context, masterSecret, threadId, true);
         MessageNotifier.cancelDelayedNotifications();
       } else {
         Log.w(TAG, "Canceled, not notifying...");

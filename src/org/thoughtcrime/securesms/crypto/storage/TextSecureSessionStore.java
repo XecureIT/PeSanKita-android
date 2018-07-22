@@ -7,11 +7,10 @@ import android.util.Log;
 
 import org.thoughtcrime.securesms.crypto.MasterCipher;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
-import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
 import org.thoughtcrime.securesms.util.Conversions;
-import org.whispersystems.libsignal.SignalProtocolAddress;
 import org.whispersystems.libsignal.InvalidMessageException;
+import org.whispersystems.libsignal.SignalProtocolAddress;
+import org.whispersystems.libsignal.protocol.CiphertextMessage;
 import org.whispersystems.libsignal.state.SessionRecord;
 import org.whispersystems.libsignal.state.SessionState;
 import org.whispersystems.libsignal.state.SessionStore;
@@ -108,8 +107,12 @@ public class TextSecureSessionStore implements SessionStore {
 
   @Override
   public boolean containsSession(SignalProtocolAddress address) {
-    return getSessionFile(address).exists() &&
-           loadSession(address).getSessionState().hasSenderChain();
+    if (!getSessionFile(address).exists()) return false;
+
+    SessionRecord sessionRecord = loadSession(address);
+
+    return sessionRecord.getSessionState().hasSenderChain() &&
+           sessionRecord.getSessionState().getSessionVersion() == CiphertextMessage.CURRENT_VERSION;
   }
 
   @Override
@@ -130,7 +133,6 @@ public class TextSecureSessionStore implements SessionStore {
 
   @Override
   public List<Integer> getSubDeviceSessions(String name) {
-    long          recipientId = RecipientFactory.getRecipientsFromString(context, name, true).getPrimaryRecipient().getRecipientId();
     List<Integer> results     = new LinkedList<>();
     File          parent      = getSessionDirectory();
     String[]      children    = parent.list();
@@ -139,10 +141,10 @@ public class TextSecureSessionStore implements SessionStore {
 
     for (String child : children) {
       try {
-        String[] parts              = child.split("[.]", 2);
-        long     sessionRecipientId = Long.parseLong(parts[0]);
+        String[] parts       = child.split("[.]", 2);
+        String   sessionName = parts[0];
 
-        if (sessionRecipientId == recipientId && parts.length > 1) {
+        if (sessionName.equals(name) && parts.length > 1) {
           results.add(Integer.parseInt(parts[1]));
         }
       } catch (NumberFormatException e) {
@@ -170,6 +172,24 @@ public class TextSecureSessionStore implements SessionStore {
     }
   }
 
+  public void archiveAllSessions() {
+    synchronized (FILE_LOCK) {
+      File directory = getSessionDirectory();
+
+      for (File session : directory.listFiles()) {
+        if (session.isFile()) {
+          SignalProtocolAddress address = getAddressName(session);
+
+          if (address != null) {
+            SessionRecord sessionRecord = loadSession(address);
+            sessionRecord.archiveCurrentState();
+            storeSession(address, sessionRecord);
+          }
+        }
+      }
+    }
+  }
+
   private File getSessionFile(SignalProtocolAddress address) {
     return new File(getSessionDirectory(), getSessionName(address));
   }
@@ -186,26 +206,21 @@ public class TextSecureSessionStore implements SessionStore {
     return directory;
   }
 
-  private String getSessionName(SignalProtocolAddress axolotlAddress) {
-    Recipient recipient   = RecipientFactory.getRecipientsFromString(context, axolotlAddress.getName(), true)
-                                          .getPrimaryRecipient();
-    long      recipientId = recipient.getRecipientId();
-    int       deviceId    = axolotlAddress.getDeviceId();
-
-    return recipientId + (deviceId == SignalServiceAddress.DEFAULT_DEVICE_ID ? "" : "." + deviceId);
+  private String getSessionName(SignalProtocolAddress address) {
+    int deviceId = address.getDeviceId();
+    return address.getName() + (deviceId == SignalServiceAddress.DEFAULT_DEVICE_ID ? "" : "." + deviceId);
   }
 
   private @Nullable SignalProtocolAddress getAddressName(File sessionFile) {
     try {
-      String[]  parts     = sessionFile.getName().split("[.]");
-      Recipient recipient = RecipientFactory.getRecipientForId(context, Integer.valueOf(parts[0]), true);
+      String[] parts = sessionFile.getName().split("[.]");
 
       int deviceId;
 
       if (parts.length > 1) deviceId = Integer.parseInt(parts[1]);
       else                  deviceId = SignalServiceAddress.DEFAULT_DEVICE_ID;
 
-      return new SignalProtocolAddress(recipient.getNumber(), deviceId);
+      return new SignalProtocolAddress(parts[0], deviceId);
     } catch (NumberFormatException e) {
       Log.w(TAG, e);
       return null;

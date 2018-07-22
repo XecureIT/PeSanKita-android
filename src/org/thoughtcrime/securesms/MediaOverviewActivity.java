@@ -38,12 +38,12 @@ import android.view.WindowManager;
 import android.widget.TextView;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.CursorRecyclerViewAdapter;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.MediaDatabase.MediaRecord;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.Recipient.RecipientModifiedListener;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 import org.thoughtcrime.securesms.util.AbstractCursorLoader;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.SaveAttachmentTask;
@@ -58,8 +58,9 @@ import java.util.List;
 public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity implements LoaderManager.LoaderCallbacks<Cursor> {
   private final static String TAG = MediaOverviewActivity.class.getSimpleName();
 
-  public static final String RECIPIENT_EXTRA = "recipient";
+  public static final String ADDRESS_EXTRA   = "address";
   public static final String THREAD_ID_EXTRA = "thread_id";
+  public static final String TYPE_ID_EXTRA = "type_id";
 
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
 
@@ -70,6 +71,7 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
   private TextView          noImages;
   private Recipient         recipient;
   private long              threadId;
+  public static int         typeId;
 
   @Override
   protected void onPreCreate() {
@@ -125,6 +127,7 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
 
   private void initializeResources() {
     threadId = getIntent().getLongExtra(THREAD_ID_EXTRA, -1);
+    typeId   = getIntent().getIntExtra(TYPE_ID_EXTRA, -1);
 
     noImages = (TextView    ) findViewById(R.id.no_images );
     gridView = (RecyclerView) findViewById(R.id.media_grid);
@@ -132,11 +135,12 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
     gridView.setLayoutManager(gridManager);
     gridView.setHasFixedSize(true);
 
-    final long recipientId = getIntent().getLongExtra(RECIPIENT_EXTRA, -1);
-    if (recipientId > -1) {
-      recipient = RecipientFactory.getRecipientForId(this, recipientId, true);
-    } else if (threadId > -1){
-      recipient = DatabaseFactory.getThreadDatabase(this).getRecipientsForThreadId(threadId).getPrimaryRecipient();
+    Address address = getIntent().getParcelableExtra(ADDRESS_EXTRA);
+
+    if (address != null) {
+      recipient = Recipient.from(this, address, true);
+    } else if (threadId > -1) {
+      recipient = DatabaseFactory.getThreadDatabase(this).getRecipientForThreadId(threadId);
     } else {
       recipient = null;
     }
@@ -162,15 +166,26 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
                                                                                      R.string.please_wait) {
           @Override
           protected List<SaveAttachmentTask.Attachment> doInBackground(Void... params) {
-            Cursor cursor                                   = DatabaseFactory.getMediaDatabase(c).getMediaForThread(threadId);
+            Cursor cursor;
+            if (typeId > -1) {
+              String type = null;
+              if (typeId == 0)
+                type = "image";
+              else if (typeId == 1)
+                type = "video";
+              cursor = DatabaseFactory.getMediaDatabase(c).getMediaByMimeType(type);
+            } else {
+              cursor = DatabaseFactory.getMediaDatabase(c).getMediaForThread(threadId);
+            }
+
             List<SaveAttachmentTask.Attachment> attachments = new ArrayList<>(cursor.getCount());
 
             while (cursor != null && cursor.moveToNext()) {
-              MediaRecord record = MediaRecord.from(cursor);
+              MediaRecord record = MediaRecord.from(c, masterSecret, cursor);
               attachments.add(new SaveAttachmentTask.Attachment(record.getAttachment().getDataUri(),
                                                                 record.getContentType(),
-                                                                record.getAttachment().getFilename(),
-                                                                record.getDate()));
+                                                                record.getDate(),
+                                                                null));
             }
 
             return attachments;
@@ -180,7 +195,7 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
           protected void onPostExecute(List<SaveAttachmentTask.Attachment> attachments) {
             super.onPostExecute(attachments);
 
-            SaveAttachmentTask saveTask = new SaveAttachmentTask(c, masterSecret, attachments.size());
+            SaveAttachmentTask saveTask = new SaveAttachmentTask(c, masterSecret, gridView, attachments.size());
             saveTask.execute(attachments.toArray(new SaveAttachmentTask.Attachment[attachments.size()]));
           }
         }.execute();
@@ -215,7 +230,7 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
 
   @Override
   public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-    return new ThreadMediaLoader(this, threadId);
+    return new ThreadMediaLoader(this, threadId, typeId);
   }
 
   @Override
@@ -233,15 +248,27 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
 
   public static class ThreadMediaLoader extends AbstractCursorLoader {
     private final long threadId;
+    private final int typeId;
 
-    public ThreadMediaLoader(Context context, long threadId) {
+    public ThreadMediaLoader(Context context, long threadId, int typeId) {
       super(context);
       this.threadId = threadId;
+      this.typeId = typeId;
     }
 
     @Override
     public Cursor getCursor() {
-      return DatabaseFactory.getMediaDatabase(getContext()).getMediaForThread(threadId);
+      if (typeId > -1) {
+        String type = null;
+        if (typeId == 0)
+          type = "image";
+        else if (typeId == 1)
+          type = "video";
+
+        return DatabaseFactory.getMediaDatabase(getContext()).getMediaByMimeType(type);
+      } else {
+        return DatabaseFactory.getMediaDatabase(getContext()).getMediaForThread(threadId);
+      }
     }
   }
 }

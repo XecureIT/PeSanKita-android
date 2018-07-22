@@ -18,31 +18,24 @@ package org.thoughtcrime.securesms.components;
 
 import android.content.Context;
 import android.os.Build;
+import android.support.annotation.NonNull;
+import android.text.TextUtils;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.AutoCompleteTextView;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
 
 import org.thoughtcrime.securesms.R;
-import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.RecipientsAdapter;
 import org.thoughtcrime.securesms.contacts.RecipientsEditor;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.RecipientFormattingException;
-import org.thoughtcrime.securesms.recipients.Recipients;
-import org.thoughtcrime.securesms.recipients.Recipients.RecipientsModifiedListener;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
+import java.util.StringTokenizer;
 
 /**
  * Panel component combining both an editable field with a button for
@@ -50,7 +43,7 @@ import java.util.Set;
  *
  * @author Moxie Marlinspike
  */
-public class PushRecipientsPanel extends RelativeLayout implements RecipientsModifiedListener {
+public class PushRecipientsPanel extends RelativeLayout implements RecipientModifiedListener {
   private final String                         TAG = PushRecipientsPanel.class.getSimpleName();
   private       RecipientsPanelChangedListener panelChangeListener;
 
@@ -74,29 +67,9 @@ public class PushRecipientsPanel extends RelativeLayout implements RecipientsMod
     initialize();
   }
 
-  public void addRecipient(String name, String number) {
-    if (name != null) recipientsText.append(name + "< " + number + ">, ");
-    else recipientsText.append(number + ", ");
-  }
-
-  public void addRecipients(Recipients recipients) {
-    List<Recipient> recipientList = recipients.getRecipientsList();
-    Iterator<Recipient> iterator = recipientList.iterator();
-
-    while (iterator.hasNext()) {
-      Recipient recipient = iterator.next();
-      addRecipient(recipient.getName(), recipient.getNumber());
-    }
-  }
-
-  public Recipients getRecipients() throws RecipientFormattingException {
+  public List<Recipient> getRecipients() {
     String rawText = recipientsText.getText().toString();
-    Recipients recipients = RecipientFactory.getRecipientsFromString(getContext(), rawText, true);
-
-    if (recipients.isEmpty())
-      throw new RecipientFormattingException("Recipient List Is Empty!");
-
-    return recipients;
+    return getRecipientsFromString(getContext(), rawText, true);
   }
 
   public void disable() {
@@ -122,15 +95,13 @@ public class PushRecipientsPanel extends RelativeLayout implements RecipientsMod
   }
 
   private void initRecipientsEditor() {
-    Recipients recipients;
-    recipientsText = (RecipientsEditor)findViewById(R.id.recipients_text);
+    this.recipientsText = (RecipientsEditor)findViewById(R.id.recipients_text);
 
-    try {
-      recipients = getRecipients();
-    } catch (RecipientFormattingException e) {
-      recipients = RecipientFactory.getRecipientsFor(getContext(), new LinkedList<Recipient>(), true);
+    List<Recipient> recipients = getRecipients();
+
+    for (Recipient recipient : recipients) {
+      recipient.addListener(this);
     }
-    recipients.addListener(this);
 
     recipientsText.setAdapter(new RecipientsAdapter(this.getContext()));
     recipientsText.populate(recipients);
@@ -140,35 +111,59 @@ public class PushRecipientsPanel extends RelativeLayout implements RecipientsMod
       @Override
       public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
         if (panelChangeListener != null) {
-          try {
-            panelChangeListener.onRecipientsPanelUpdate(getRecipients());
-          } catch (RecipientFormattingException rfe) {
-            panelChangeListener.onRecipientsPanelUpdate(null);
-          }
+          panelChangeListener.onRecipientsPanelUpdate(getRecipients());
         }
         recipientsText.setText("");
       }
     });
   }
 
-  @Override public void onModified(Recipients recipients) {
-    recipientsText.populate(recipients);
+  private @NonNull List<Recipient> getRecipientsFromString(Context context, @NonNull String rawText, boolean asynchronous) {
+    StringTokenizer tokenizer  = new StringTokenizer(rawText, ",");
+    List<Recipient> recipients = new LinkedList<>();
+
+    while (tokenizer.hasMoreTokens()) {
+      String token = tokenizer.nextToken().trim();
+
+      if (!TextUtils.isEmpty(token)) {
+        if (hasBracketedNumber(token)) recipients.add(Recipient.from(context, Address.fromExternal(context, parseBracketedNumber(token)), asynchronous));
+        else                           recipients.add(Recipient.from(context, Address.fromExternal(context, token), asynchronous));
+      }
+    }
+
+    return recipients;
+  }
+
+  private boolean hasBracketedNumber(String recipient) {
+    int openBracketIndex = recipient.indexOf('<');
+
+    return (openBracketIndex != -1) &&
+           (recipient.indexOf('>', openBracketIndex) != -1);
+  }
+
+  private  String parseBracketedNumber(String recipient) {
+    int begin    = recipient.indexOf('<');
+    int end      = recipient.indexOf('>', begin);
+    String value = recipient.substring(begin + 1, end);
+
+    return value;
+  }
+
+  @Override
+  public void onModified(Recipient recipient) {
+    recipientsText.populate(getRecipients());
   }
 
   private class FocusChangedListener implements View.OnFocusChangeListener {
     public void onFocusChange(View v, boolean hasFocus) {
       if (!hasFocus && (panelChangeListener != null)) {
-        try {
-          panelChangeListener.onRecipientsPanelUpdate(getRecipients());
-        } catch (RecipientFormattingException rfe) {
-          panelChangeListener.onRecipientsPanelUpdate(null);
-        }
+        panelChangeListener.onRecipientsPanelUpdate(getRecipients());
       }
     }
   }
 
   public interface RecipientsPanelChangedListener {
-    public void onRecipientsPanelUpdate(Recipients recipients);
+    public void onRecipientsPanelUpdate(List<Recipient> recipients);
   }
 
 }

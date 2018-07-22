@@ -5,24 +5,23 @@ import android.util.Log;
 
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.EncryptingSmsDatabase;
 import org.thoughtcrime.securesms.database.NoSuchMessageException;
-import org.thoughtcrime.securesms.database.SmsDatabase;
 import org.thoughtcrime.securesms.database.model.SmsMessageRecord;
 import org.thoughtcrime.securesms.dependencies.InjectableType;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.service.ExpiringMessageManager;
 import org.thoughtcrime.securesms.transport.InsecureFallbackApprovalException;
 import org.thoughtcrime.securesms.transport.RetryLaterException;
+import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.SignalServiceMessageSender;
 import org.whispersystems.signalservice.api.crypto.UntrustedIdentityException;
 import org.whispersystems.signalservice.api.messages.SignalServiceDataMessage;
 import org.whispersystems.signalservice.api.push.SignalServiceAddress;
 import org.whispersystems.signalservice.api.push.exceptions.UnregisteredUserException;
-import org.whispersystems.signalservice.api.util.InvalidNumberException;
 
 import java.io.IOException;
 
@@ -40,7 +39,7 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
 
   private final long messageId;
 
-  public PushTextSendJob(Context context, long messageId, String destination) {
+  public PushTextSendJob(Context context, long messageId, Address destination) {
     super(context, constructParameters(context, destination));
     this.messageId = messageId;
   }
@@ -68,14 +67,11 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
     } catch (InsecureFallbackApprovalException e) {
       Log.w(TAG, e);
       database.markAsPendingInsecureSmsFallback(record.getId());
-      MessageNotifier.notifyMessageDeliveryFailed(context, record.getRecipients(), record.getThreadId());
+      MessageNotifier.notifyMessageDeliveryFailed(context, record.getRecipient(), record.getThreadId());
       ApplicationContext.getInstance(context).getJobManager().add(new DirectoryRefreshJob(context));
     } catch (UntrustedIdentityException e) {
       Log.w(TAG, e);
-      Recipients recipients  = RecipientFactory.getRecipientsFromString(context, e.getE164Number(), false);
-      long       recipientId = recipients.getPrimaryRecipient().getRecipientId();
-
-      database.addMismatchedIdentity(record.getId(), recipientId, e.getIdentityKey());
+      database.addMismatchedIdentity(record.getId(), Address.fromSerialized(e.getE164Number()), e.getIdentityKey());
       database.markAsSentFailed(record.getId());
       database.markAsPush(record.getId());
     }
@@ -92,11 +88,11 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
   public void onCanceled() {
     DatabaseFactory.getSmsDatabase(context).markAsSentFailed(messageId);
 
-    long       threadId   = DatabaseFactory.getSmsDatabase(context).getThreadIdForMessage(messageId);
-    Recipients recipients = DatabaseFactory.getThreadDatabase(context).getRecipientsForThreadId(threadId);
+    long      threadId  = DatabaseFactory.getSmsDatabase(context).getThreadIdForMessage(messageId);
+    Recipient recipient = DatabaseFactory.getThreadDatabase(context).getRecipientForThreadId(threadId);
 
-    if (threadId != -1 && recipients != null) {
-      MessageNotifier.notifyMessageDeliveryFailed(context, recipients, threadId);
+    if (threadId != -1 && recipient != null) {
+      MessageNotifier.notifyMessageDeliveryFailed(context, recipient, threadId);
     }
   }
 
@@ -104,19 +100,21 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
       throws UntrustedIdentityException, InsecureFallbackApprovalException, RetryLaterException
   {
     try {
-      SignalServiceAddress       address           = getPushAddress(message.getIndividualRecipient().getNumber());
+      SignalServiceAddress       address           = getPushAddress(message.getIndividualRecipient().getAddress());
       SignalServiceMessageSender messageSender     = messageSenderFactory.create();
+      Optional<byte[]>           profileKey        = getProfileKey(message.getIndividualRecipient());
       SignalServiceDataMessage   textSecureMessage = SignalServiceDataMessage.newBuilder()
                                                                              .withTimestamp(message.getDateSent())
                                                                              .withBody(message.getBody().getBody())
                                                                              .withReplyBody(message.getBody().getReplyBody())
                                                                              .withExpiration((int)(message.getExpiresIn() / 1000))
+                                                                             .withProfileKey(profileKey.orNull())
                                                                              .asEndSessionMessage(message.isEndSession())
                                                                              .build();
 
 
       messageSender.sendMessage(address, textSecureMessage);
-    } catch (InvalidNumberException | UnregisteredUserException e) {
+    } catch (UnregisteredUserException e) {
       Log.w(TAG, e);
       throw new InsecureFallbackApprovalException(e);
     } catch (IOException e) {

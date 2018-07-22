@@ -29,6 +29,7 @@ import android.view.ViewGroup;
 
 import org.thoughtcrime.securesms.crypto.MasterCipher;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.CursorRecyclerViewAdapter;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
@@ -77,13 +78,8 @@ public class ConversationListAdapter extends CursorRecyclerViewAdapter<Conversat
   @Override
   public long getItemId(@NonNull Cursor cursor) {
     ThreadRecord  record  = getThreadRecord(cursor);
-    StringBuilder builder = new StringBuilder("" + record.getThreadId());
 
-    for (long recipientId : record.getRecipients().getIds()) {
-      builder.append("::").append(recipientId);
-    }
-
-    return Conversions.byteArrayToLong(digest.digest(builder.toString().getBytes()));
+    return Conversions.byteArrayToLong(digest.digest(record.getRecipient().getAddress().serialize().getBytes()));
   }
 
   public ConversationListAdapter(@NonNull Context context,

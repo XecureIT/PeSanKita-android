@@ -4,23 +4,31 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
 import org.thoughtcrime.securesms.attachments.Attachment;
-import org.thoughtcrime.securesms.attachments.AttachmentId;
 import org.thoughtcrime.securesms.attachments.DatabaseAttachment;
+import org.thoughtcrime.securesms.crypto.MasterSecret;
 
 public class MediaDatabase extends Database {
 
-    private final static String MEDIA_QUERY = "SELECT " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + ", "
+    private final static String MEDIA_QUERY = "SELECT " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " AS " + AttachmentDatabase.ATTACHMENT_ID_ALIAS + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_TYPE + ", "
-        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FILE_NAME + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL_ASPECT_RATIO + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.UNIQUE_ID + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.MMS_ID + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.TRANSFER_STATE + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.SIZE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FILE_NAME + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.DATA + ", "
         + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_LOCATION + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_DISPOSITION + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.DIGEST + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FAST_PREFLIGHT_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.VOICE_NOTE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.NAME + ", "
         + MmsDatabase.TABLE_NAME + "." + MmsDatabase.MESSAGE_BOX + ", "
         + MmsDatabase.TABLE_NAME + "." + MmsDatabase.DATE_SENT + ", "
         + MmsDatabase.TABLE_NAME + "." + MmsDatabase.DATE_RECEIVED + ", "
@@ -35,6 +43,63 @@ public class MediaDatabase extends Database {
         + AttachmentDatabase.DATA + " IS NOT NULL "
         + "ORDER BY " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " DESC";
 
+    private final static String IMAGE_VIDEO_QUERY = "SELECT " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " AS " + AttachmentDatabase.ATTACHMENT_ID_ALIAS + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_TYPE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL_ASPECT_RATIO + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.UNIQUE_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.MMS_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.TRANSFER_STATE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.SIZE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FILE_NAME + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.DATA + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_LOCATION + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_DISPOSITION + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.DIGEST + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FAST_PREFLIGHT_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.VOICE_NOTE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.NAME + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.MESSAGE_BOX + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.DATE_SENT + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.DATE_RECEIVED + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.ADDRESS + " "
+        + "FROM " + AttachmentDatabase.TABLE_NAME + " LEFT JOIN " + MmsDatabase.TABLE_NAME
+        + " ON " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.MMS_ID + " = " + MmsDatabase.TABLE_NAME + "." + MmsDatabase.ID + " "
+        + "WHERE " + AttachmentDatabase.MMS_ID + " IN (SELECT " + MmsSmsColumns.ID
+        + " FROM " + MmsDatabase.TABLE_NAME + ") AND ("
+        + AttachmentDatabase.CONTENT_TYPE + " LIKE ? "
+        + ") AND "
+        + AttachmentDatabase.DATA + " IS NOT NULL "
+        + "ORDER BY " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " DESC";
+
+    private final static String ALL_MEDIA_QUERY = "SELECT " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " AS " + AttachmentDatabase.ATTACHMENT_ID_ALIAS + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_TYPE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL_ASPECT_RATIO + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.UNIQUE_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.MMS_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.TRANSFER_STATE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.SIZE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FILE_NAME + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.DATA + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.THUMBNAIL + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_LOCATION + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.CONTENT_DISPOSITION + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.DIGEST + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FAST_PREFLIGHT_ID + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.VOICE_NOTE + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.NAME + ", "
+        + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.FN + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.MESSAGE_BOX + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.DATE_SENT + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.DATE_RECEIVED + ", "
+        + MmsDatabase.TABLE_NAME + "." + MmsDatabase.ADDRESS + " "
+        + "FROM " + AttachmentDatabase.TABLE_NAME + " LEFT JOIN " + MmsDatabase.TABLE_NAME
+        + " ON " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.MMS_ID + " = " + MmsDatabase.TABLE_NAME + "." + MmsDatabase.ID + " "
+        + "WHERE " + AttachmentDatabase.MMS_ID + " IN (SELECT " + MmsSmsColumns.ID
+        + " FROM " + MmsDatabase.TABLE_NAME + ") AND "
+        + AttachmentDatabase.DATA + " IS NOT NULL "
+        + "ORDER BY " + AttachmentDatabase.TABLE_NAME + "." + AttachmentDatabase.ROW_ID + " DESC";
+
   public MediaDatabase(Context context, SQLiteOpenHelper databaseHelper) {
     super(context, databaseHelper);
   }
@@ -46,38 +111,39 @@ public class MediaDatabase extends Database {
     return cursor;
   }
 
-  public static class MediaRecord {
-    private final AttachmentId attachmentId;
-    private final long         mmsId;
-    private final boolean      hasData;
-    private final boolean      hasThumbnail;
-    private final String       contentType;
-    private final String       filename;
-    private final String       address;
-    private final long         date;
-    private final int          transferState;
-    private final long         size;
+  public Cursor getMediaByMimeType(String type) {
+    SQLiteDatabase database = databaseHelper.getReadableDatabase();
+    Cursor cursor = database.rawQuery(IMAGE_VIDEO_QUERY, new String[]{type +"/%"});
+    return cursor;
+  }
 
-    private MediaRecord(AttachmentId attachmentId, long mmsId,
-                        boolean hasData, boolean hasThumbnail,
-                        String contentType, String filename, String address, long date,
-                        int transferState, long size)
-    {
-      this.attachmentId  = attachmentId;
-      this.mmsId         = mmsId;
-      this.hasData       = hasData;
-      this.hasThumbnail  = hasThumbnail;
-      this.contentType   = contentType;
-      this.filename      = filename;
-      this.address       = address;
-      this.date          = date;
-      this.transferState = transferState;
-      this.size          = size;
+  public Cursor getAllMedia() {
+    SQLiteDatabase database = databaseHelper.getReadableDatabase();
+    Cursor cursor = database.rawQuery(ALL_MEDIA_QUERY, null);
+    return cursor;
+  }
+
+  public static class MediaRecord {
+
+    private final DatabaseAttachment attachment;
+    private final Address            address;
+    private final long               date;
+
+    private MediaRecord(DatabaseAttachment attachment, @Nullable Address address, long date) {
+      this.attachment = attachment;
+      this.address    = address;
+      this.date       = date;
     }
 
-    public static MediaRecord from(Cursor cursor) {
-      AttachmentId attachmentId = new AttachmentId(cursor.getLong(cursor.getColumnIndexOrThrow(AttachmentDatabase.ROW_ID)),
-                                                   cursor.getLong(cursor.getColumnIndexOrThrow(AttachmentDatabase.UNIQUE_ID)));
+    public static MediaRecord from(@NonNull Context context, @NonNull MasterSecret masterSecret, @NonNull Cursor cursor) {
+      AttachmentDatabase attachmentDatabase = DatabaseFactory.getAttachmentDatabase(context);
+      DatabaseAttachment attachment         = attachmentDatabase.getAttachment(masterSecret, cursor);
+      String             serializedAddress  = cursor.getString(cursor.getColumnIndexOrThrow(MmsDatabase.ADDRESS));
+      Address            address            = null;
+
+      if (serializedAddress != null) {
+        address = Address.fromSerialized(serializedAddress);
+      }
 
       long date;
 
@@ -87,27 +153,18 @@ public class MediaDatabase extends Database {
         date = cursor.getLong(cursor.getColumnIndexOrThrow(MmsDatabase.DATE_RECEIVED));
       }
 
-      return new MediaRecord(attachmentId,
-                             cursor.getLong(cursor.getColumnIndexOrThrow(AttachmentDatabase.MMS_ID)),
-                             !cursor.isNull(cursor.getColumnIndexOrThrow(AttachmentDatabase.DATA)),
-                             !cursor.isNull(cursor.getColumnIndexOrThrow(AttachmentDatabase.THUMBNAIL)),
-                             cursor.getString(cursor.getColumnIndexOrThrow(AttachmentDatabase.CONTENT_TYPE)),
-                             cursor.getString(cursor.getColumnIndexOrThrow(AttachmentDatabase.FILE_NAME)),
-                             cursor.getString(cursor.getColumnIndexOrThrow(MmsDatabase.ADDRESS)),
-                             date,
-                             cursor.getInt(cursor.getColumnIndexOrThrow(AttachmentDatabase.TRANSFER_STATE)),
-                             cursor.getLong(cursor.getColumnIndexOrThrow(AttachmentDatabase.SIZE)));
+      return new MediaRecord(attachment, address, date);
     }
 
     public Attachment getAttachment() {
-      return new DatabaseAttachment(attachmentId, mmsId, hasData, hasThumbnail, contentType, filename, transferState, size, null, null, null);
+      return attachment;
     }
 
     public String getContentType() {
-      return contentType;
+      return attachment.getContentType();
     }
 
-    public String getAddress() {
+    public @Nullable Address getAddress() {
       return address;
     }
 

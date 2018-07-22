@@ -6,31 +6,38 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.ContactsContract;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
 import android.util.Log;
 
 import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.contacts.ContactAccessor.ContactData;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.crypto.ProfileKeyUtil;
+import org.thoughtcrime.securesms.database.Address;
+import org.thoughtcrime.securesms.database.DatabaseFactory;
+import org.thoughtcrime.securesms.database.IdentityDatabase;
 import org.thoughtcrime.securesms.dependencies.InjectableType;
 import org.thoughtcrime.securesms.dependencies.SignalCommunicationModule.SignalMessageSenderFactory;
 import org.thoughtcrime.securesms.jobs.requirements.MasterSecretRequirement;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.util.Base64;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.whispersystems.jobqueue.JobParameters;
 import org.whispersystems.jobqueue.requirements.NetworkRequirement;
+import org.whispersystems.libsignal.IdentityKey;
 import org.whispersystems.libsignal.util.guava.Optional;
 import org.whispersystems.signalservice.api.SignalServiceMessageSender;
 import org.whispersystems.signalservice.api.crypto.UntrustedIdentityException;
 import org.whispersystems.signalservice.api.messages.SignalServiceAttachment;
 import org.whispersystems.signalservice.api.messages.SignalServiceAttachmentStream;
+import org.whispersystems.signalservice.api.messages.multidevice.ContactsMessage;
 import org.whispersystems.signalservice.api.messages.multidevice.DeviceContact;
 import org.whispersystems.signalservice.api.messages.multidevice.DeviceContactsOutputStream;
 import org.whispersystems.signalservice.api.messages.multidevice.SignalServiceSyncMessage;
+import org.whispersystems.signalservice.api.messages.multidevice.VerifiedMessage;
 import org.whispersystems.signalservice.api.push.exceptions.PushNetworkException;
+import org.whispersystems.signalservice.api.util.InvalidNumberException;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -43,19 +50,19 @@ import javax.inject.Inject;
 
 public class MultiDeviceContactUpdateJob extends MasterSecretJob implements InjectableType {
 
-  private static final long serialVersionUID = 1L;
+  private static final long serialVersionUID = 2L;
 
   private static final String TAG = MultiDeviceContactUpdateJob.class.getSimpleName();
 
   @Inject transient SignalMessageSenderFactory messageSenderFactory;
 
-  private final long recipientId;
+  private final @Nullable String address;
 
-  public MultiDeviceContactUpdateJob(Context context) {
-    this(context, -1);
+  public MultiDeviceContactUpdateJob(@NonNull Context context) {
+    this(context, null);
   }
 
-  public MultiDeviceContactUpdateJob(Context context, long recipientId) {
+  public MultiDeviceContactUpdateJob(@NonNull Context context, @Nullable Address address) {
     super(context, JobParameters.newBuilder()
                                 .withRequirement(new NetworkRequirement(context))
                                 .withRequirement(new MasterSecretRequirement(context))
@@ -63,7 +70,8 @@ public class MultiDeviceContactUpdateJob extends MasterSecretJob implements Inje
                                 .withPersistence()
                                 .create());
 
-    this.recipientId = recipientId;
+    if (address != null) this.address = address.serialize();
+    else                 this.address = null;
   }
 
   @Override
@@ -75,28 +83,34 @@ public class MultiDeviceContactUpdateJob extends MasterSecretJob implements Inje
       return;
     }
 
-    if (recipientId <= 0) generateFullContactUpdate();
-    else                  generateSingleContactUpdate(recipientId);
+    if (address == null) generateFullContactUpdate();
+    else                 generateSingleContactUpdate(Address.fromSerialized(address));
   }
 
-  private void generateSingleContactUpdate(long recipientId)
+  private void generateSingleContactUpdate(@NonNull Address address)
       throws IOException, UntrustedIdentityException, NetworkException
   {
     SignalServiceMessageSender messageSender   = messageSenderFactory.create();
     File                       contactDataFile = createTempFile("multidevice-contact-update");
 
     try {
-      DeviceContactsOutputStream out       = new DeviceContactsOutputStream(new FileOutputStream(contactDataFile));
-      Recipient                  recipient = RecipientFactory.getRecipientForId(context, recipientId, false);
+      DeviceContactsOutputStream                out             = new DeviceContactsOutputStream(new FileOutputStream(contactDataFile));
+      Recipient                                 recipient       = Recipient.from(context, address, false);
+      Optional<IdentityDatabase.IdentityRecord> identityRecord  = DatabaseFactory.getIdentityDatabase(context).getIdentity(address);
+      Optional<VerifiedMessage>                 verifiedMessage = getVerifiedMessage(recipient, identityRecord);
 
-      out.write(new DeviceContact(recipient.getNumber(),
+      out.write(new DeviceContact(address.toPhoneString(),
                                   Optional.fromNullable(recipient.getName()),
                                   getAvatar(recipient.getContactUri()),
-                                  Optional.fromNullable(recipient.getColor().serialize())));
+                                  Optional.fromNullable(recipient.getColor().serialize()),
+                                  verifiedMessage,
+                                  Optional.fromNullable(recipient.getProfileKey())));
 
       out.close();
-      sendUpdate(messageSender, contactDataFile);
+      sendUpdate(messageSender, contactDataFile, false);
 
+    } catch(InvalidNumberException e) {
+      Log.w(TAG, e);
     } finally {
       if (contactDataFile != null) contactDataFile.delete();
     }
@@ -113,17 +127,29 @@ public class MultiDeviceContactUpdateJob extends MasterSecretJob implements Inje
       Collection<ContactData>    contacts = ContactAccessor.getInstance().getContactsWithPush(context);
 
       for (ContactData contactData : contacts) {
-        Uri              contactUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, String.valueOf(contactData.id));
-        String           number     = contactData.numbers.get(0).number;
-        Optional<String> name       = Optional.fromNullable(contactData.name);
-        Optional<String> color      = getColor(number);
+        Uri                                       contactUri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, String.valueOf(contactData.id));
+        Address                                   address    = Address.fromExternal(context, contactData.numbers.get(0).number);
+        Recipient                                 recipient  = Recipient.from(context, address, false);
+        Optional<IdentityDatabase.IdentityRecord> identity   = DatabaseFactory.getIdentityDatabase(context).getIdentity(address);
+        Optional<VerifiedMessage>                 verified   = getVerifiedMessage(recipient, identity);
+        Optional<String>                          name       = Optional.fromNullable(contactData.name);
+        Optional<String>                          color      = Optional.of(recipient.getColor().serialize());
+        Optional<byte[]>                          profileKey = Optional.fromNullable(recipient.getProfileKey());
 
-        out.write(new DeviceContact(number, name, getAvatar(contactUri), color));
+        out.write(new DeviceContact(address.toPhoneString(), name, getAvatar(contactUri), color, verified, profileKey));
+      }
+
+      if (ProfileKeyUtil.hasProfileKey(context)) {
+        out.write(new DeviceContact(TextSecurePreferences.getLocalNumber(context),
+            Optional.absent(), Optional.absent(),
+            Optional.absent(), Optional.absent(),
+            Optional.of(ProfileKeyUtil.getProfileKey(context))));
       }
 
       out.close();
-      sendUpdate(messageSender, contactDataFile);
-
+      sendUpdate(messageSender, contactDataFile, true);
+    } catch(InvalidNumberException e) {
+      Log.w(TAG, e);
     } finally {
       if (contactDataFile != null) contactDataFile.delete();
     }
@@ -145,16 +171,7 @@ public class MultiDeviceContactUpdateJob extends MasterSecretJob implements Inje
 
   }
 
-  private Optional<String> getColor(String number) {
-    if (!TextUtils.isEmpty(number)) {
-      Recipients recipients = RecipientFactory.getRecipientsFromString(context, number, false);
-      return Optional.of(recipients.getColor().serialize());
-    } else {
-      return Optional.absent();
-    }
-  }
-
-  private void sendUpdate(SignalServiceMessageSender messageSender, File contactsFile)
+  private void sendUpdate(SignalServiceMessageSender messageSender, File contactsFile, boolean complete)
       throws IOException, UntrustedIdentityException, NetworkException
   {
     if (contactsFile.length() > 0) {
@@ -166,7 +183,7 @@ public class MultiDeviceContactUpdateJob extends MasterSecretJob implements Inje
                                                                                 .build();
 
       try {
-        messageSender.sendMessage(SignalServiceSyncMessage.forContacts(attachmentStream));
+        messageSender.sendMessage(SignalServiceSyncMessage.forContacts(new ContactsMessage(attachmentStream, complete)));
       } catch (IOException ioe) {
         throw new NetworkException(ioe);
       }
@@ -224,6 +241,24 @@ public class MultiDeviceContactUpdateJob extends MasterSecretJob implements Inje
         cursor.close();
       }
     }
+  }
+
+  private Optional<VerifiedMessage> getVerifiedMessage(Recipient recipient, Optional<IdentityDatabase.IdentityRecord> identity) throws InvalidNumberException {
+    if (!identity.isPresent()) return Optional.absent();
+
+    String      destination = recipient.getAddress().toPhoneString();
+    IdentityKey identityKey = identity.get().getIdentityKey();
+
+    VerifiedMessage.VerifiedState state;
+
+    switch (identity.get().getVerifiedStatus()) {
+      case VERIFIED:   state = VerifiedMessage.VerifiedState.VERIFIED;   break;
+      case UNVERIFIED: state = VerifiedMessage.VerifiedState.UNVERIFIED; break;
+      case DEFAULT:    state = VerifiedMessage.VerifiedState.DEFAULT;    break;
+      default: throw new AssertionError("Unknown state: " + identity.get().getVerifiedStatus());
+    }
+
+    return Optional.of(new VerifiedMessage(destination, identityKey, state, System.currentTimeMillis()));
   }
 
   private File createTempFile(String prefix) throws IOException {

@@ -23,7 +23,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.RippleDrawable;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
-import android.os.Handler;
 import android.support.annotation.DrawableRes;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
@@ -31,16 +30,18 @@ import android.view.View;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import org.thoughtcrime.securesms.components.AlertView;
 import org.thoughtcrime.securesms.components.AvatarImageView;
 import org.thoughtcrime.securesms.components.DeliveryStatusView;
-import org.thoughtcrime.securesms.components.AlertView;
 import org.thoughtcrime.securesms.components.FromTextView;
 import org.thoughtcrime.securesms.components.ThumbnailView;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.model.ThreadRecord;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 import org.thoughtcrime.securesms.util.DateUtils;
 import org.thoughtcrime.securesms.util.ResUtil;
+import org.thoughtcrime.securesms.util.Util;
 import org.thoughtcrime.securesms.util.ViewUtil;
 
 import java.util.Locale;
@@ -56,7 +57,7 @@ import static org.thoughtcrime.securesms.util.SpanUtil.color;
  */
 
 public class ConversationListItem extends RelativeLayout
-                                  implements Recipients.RecipientsModifiedListener,
+                                  implements RecipientModifiedListener,
                                              BindableConversationListItem, Unbindable
 {
   private final static String TAG = ConversationListItem.class.getSimpleName();
@@ -65,7 +66,7 @@ public class ConversationListItem extends RelativeLayout
   private final static Typeface LIGHT_TYPEFACE = Typeface.create("sans-serif-light", Typeface.NORMAL);
 
   private Set<Long>          selectedThreads;
-  private Recipients         recipients;
+  private Recipient          recipient;
   private long               threadId;
   private TextView           subjectView;
   private FromTextView       fromView;
@@ -82,7 +83,6 @@ public class ConversationListItem extends RelativeLayout
   private final @DrawableRes int readBackground;
   private final @DrawableRes int unreadBackround;
 
-  private final Handler handler = new Handler();
   private int distributionType;
 
   public ConversationListItem(Context context) {
@@ -116,14 +116,14 @@ public class ConversationListItem extends RelativeLayout
                    @NonNull Locale locale, @NonNull Set<Long> selectedThreads, boolean batchMode)
   {
     this.selectedThreads  = selectedThreads;
-    this.recipients       = thread.getRecipients();
+    this.recipient        = thread.getRecipient();
     this.threadId         = thread.getThreadId();
     this.read             = thread.isRead();
     this.distributionType = thread.getDistributionType();
     this.lastSeen         = thread.getLastSeen();
 
-    this.recipients.addListener(this);
-    this.fromView.setText(recipients, read);
+    this.recipient.addListener(this);
+    this.fromView.setText(recipient, read);
 
     this.subjectView.setText(thread.getDisplayBody());
     this.subjectView.setTypeface(read ? LIGHT_TYPEFACE : BOLD_TYPEFACE);
@@ -144,21 +144,21 @@ public class ConversationListItem extends RelativeLayout
     setThumbnailSnippet(masterSecret, thread);
     setBatchState(batchMode);
     setBackground(thread);
-    setRippleColor(recipients);
-    this.contactPhotoImage.setAvatar(recipients, true);
+    setRippleColor(recipient);
+    this.contactPhotoImage.setAvatar(recipient, true);
   }
 
   @Override
   public void unbind() {
-    if (this.recipients != null) this.recipients.removeListener(this);
+    if (this.recipient != null) this.recipient.removeListener(this);
   }
 
   private void setBatchState(boolean batch) {
     setSelected(batch && selectedThreads.contains(threadId));
   }
 
-  public Recipients getRecipients() {
-    return recipients;
+  public Recipient getRecipient() {
+    return recipient;
   }
 
   public long getThreadId() {
@@ -202,7 +202,7 @@ public class ConversationListItem extends RelativeLayout
   }
 
   private void setStatusIcons(ThreadRecord thread) {
-    if (!thread.isOutgoing()) {
+    if (!thread.isOutgoing() || thread.isOutgoingCall()) {
       deliveryStatusIndicator.setNone();
       alertView.setNone();
     } else if (thread.isFailed()) {
@@ -226,22 +226,19 @@ public class ConversationListItem extends RelativeLayout
   }
 
   @TargetApi(VERSION_CODES.LOLLIPOP)
-  private void setRippleColor(Recipients recipients) {
+  private void setRippleColor(Recipient recipient) {
     if (VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) {
       ((RippleDrawable)(getBackground()).mutate())
-          .setColor(ColorStateList.valueOf(recipients.getColor().toConversationColor(getContext())));
+          .setColor(ColorStateList.valueOf(recipient.getColor().toConversationColor(getContext())));
     }
   }
 
   @Override
-  public void onModified(final Recipients recipients) {
-    handler.post(new Runnable() {
-      @Override
-      public void run() {
-        fromView.setText(recipients, read);
-        contactPhotoImage.setAvatar(recipients, true);
-        setRippleColor(recipients);
-      }
+  public void onModified(final Recipient recipient) {
+    Util.runOnMain(() -> {
+      fromView.setText(recipient, read);
+      contactPhotoImage.setAvatar(recipient, true);
+      setRippleColor(recipient);
     });
   }
 

@@ -8,6 +8,8 @@ import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.support.annotation.ArrayRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.h6ah4i.android.compat.content.SharedPreferenceCompat;
@@ -46,6 +48,7 @@ public class TextSecurePreferences {
 
   private static final String LAST_VERSION_CODE_PREF           = "last_version_code";
   private static final String LAST_EXPERIENCE_VERSION_PREF     = "last_experience_version_code";
+  private static final String EXPERIENCE_DISMISSED_PREF        = "experience_dismissed";
   public  static final String RINGTONE_PREF                    = "pref_key_ringtone";
   private static final String VIBRATE_PREF                     = "pref_key_vibrate";
   private static final String NOTIFICATION_PREF                = "pref_key_enable_notifications";
@@ -57,6 +60,9 @@ public class TextSecurePreferences {
   public  static final String PASSPHRASE_TIMEOUT_INTERVAL_PREF = "pref_timeout_interval";
   private static final String PASSPHRASE_TIMEOUT_PREF          = "pref_timeout_passphrase";
   public  static final String SCREEN_SECURITY_PREF             = "pref_screen_security";
+  private static final String AUTO_REMOVE_TIME_PREF            = "pref_auto_remove_time";
+  private static final String AUTO_REMOVE_PREF                 = "pref_auto_remove";
+  public  static final String AUTO_REMOVE_TIMEOUT_INTERVAL_PREF = "pref_auto_remove_timeout_interval";
   private static final String ENTER_SENDS_PREF                 = "pref_enter_sends";
   private static final String ENTER_PRESENT_PREF               = "pref_enter_key";
   private static final String SMS_DELIVERY_REPORT_PREF         = "pref_delivery_report_sms";
@@ -73,9 +79,13 @@ public class TextSecurePreferences {
   private static final String PROMPTED_SHARE_PREF              = "pref_prompted_share";
   private static final String SIGNALING_KEY_PREF               = "pref_signaling_key";
   private static final String DIRECTORY_FRESH_TIME_PREF        = "pref_directory_refresh_time";
+  private static final String UPDATE_APK_REFRESH_TIME_PREF     = "pref_update_apk_refresh_time";
+  private static final String UPDATE_APK_DOWNLOAD_ID           = "pref_update_apk_download_id";
+  private static final String UPDATE_APK_DIGEST                = "pref_update_apk_digest";
   private static final String SIGNED_PREKEY_ROTATION_TIME_PREF = "pref_signed_pre_key_rotation_time";
   private static final String IN_THREAD_NOTIFICATION_PREF      = "pref_key_inthread_notifications";
-  private static final String BLOCKING_IDENTITY_CHANGES_PREF   = "pref_blocking_identity_changes";
+  private static final String SHOW_INVITE_REMINDER_PREF        = "pref_show_invite_reminder";
+  public  static final String MESSAGE_BODY_TEXT_SIZE_PREF      = "pref_message_body_text_size";
 
   private static final String LOCAL_REGISTRATION_ID_PREF       = "pref_local_registration_id";
   private static final String SIGNED_PREKEY_REGISTERED_PREF    = "pref_signed_prekey_registered";
@@ -84,6 +94,7 @@ public class TextSecurePreferences {
   private static final String GCM_DISABLED_PREF                = "pref_gcm_disabled";
   private static final String GCM_REGISTRATION_ID_PREF         = "pref_gcm_registration_id";
   private static final String GCM_REGISTRATION_ID_VERSION_PREF = "pref_gcm_registration_id_version";
+  private static final String GCM_REGISTRATION_ID_TIME_PREF    = "pref_gcm_registration_id_last_set_time";
   private static final String WEBSOCKET_REGISTERED_PREF        = "pref_websocket_registered";
   private static final String RATING_LATER_PREF                = "pref_rating_later";
   private static final String RATING_ENABLED_PREF              = "pref_rating_enabled";
@@ -91,6 +102,7 @@ public class TextSecurePreferences {
 
   public  static final String REPEAT_ALERTS_PREF               = "pref_repeat_alerts";
   public  static final String NOTIFICATION_PRIVACY_PREF        = "pref_notification_privacy";
+  public  static final String NOTIFICATION_PRIORITY_PREF       = "pref_notification_priority";
   public  static final String NEW_CONTACTS_NOTIFICATIONS       = "pref_enable_new_contacts_notifications";
   public  static final String WEBRTC_CALLING_PREF              = "pref_webrtc_calling";
 
@@ -102,6 +114,32 @@ public class TextSecurePreferences {
   private static final String MULTI_DEVICE_PROVISIONED_PREF    = "pref_multi_device";
   public  static final String DIRECT_CAPTURE_CAMERA_ID         = "pref_direct_capture_camera_id";
   private static final String ALWAYS_RELAY_CALLS_PREF          = "pref_turn_only";
+  private static final String PROFILE_KEY_PREF                 = "pref_profile_key";
+  private static final String PROFILE_NAME_PREF                = "pref_profile_name";
+
+  public static @Nullable String getProfileKey(Context context) {
+    return getStringPreference(context, PROFILE_KEY_PREF, null);
+  }
+
+  public static void setProfileKey(Context context, String key) {
+    setStringPreference(context, PROFILE_KEY_PREF, key);
+  }
+
+  public static void setProfileName(Context context, String name) {
+    setStringPreference(context, PROFILE_NAME_PREF, name);
+  }
+
+  public static String getProfileName(Context context) {
+    return getStringPreference(context, PROFILE_NAME_PREF, null);
+  }
+
+  public static int getNotificationPriority(Context context) {
+    return Integer.valueOf(getStringPreference(context, NOTIFICATION_PRIORITY_PREF, String.valueOf(NotificationCompat.PRIORITY_HIGH)));
+  }
+
+  public static int getMessageBodyTextSize(Context context) {
+    return Integer.valueOf(getStringPreference(context, MESSAGE_BODY_TEXT_SIZE_PREF, "16"));
+  }
 
   public static boolean isTurnOnly(Context context) {
     return getBooleanPreference(context, ALWAYS_RELAY_CALLS_PREF, false);
@@ -138,14 +176,6 @@ public class TextSecurePreferences {
 
   public static boolean isMultiDevice(Context context) {
     return getBooleanPreference(context, MULTI_DEVICE_PROVISIONED_PREF, false);
-  }
-
-  public static boolean isBlockingIdentityUpdates(Context context) {
-    return getBooleanPreference(context, BLOCKING_IDENTITY_CHANGES_PREF, true);
-  }
-
-  public static void setBlockingIdentityUpdates(Context context, boolean value) {
-    setBooleanPreference(context, BLOCKING_IDENTITY_CHANGES_PREF, value);
   }
 
   public static void setSignedPreKeyFailureCount(Context context, int value) {
@@ -228,6 +258,14 @@ public class TextSecurePreferences {
     }
   }
 
+  public static long getGcmRegistrationIdLastSetTime(Context context) {
+    return getLongPreference(context, GCM_REGISTRATION_ID_TIME_PREF, 0);
+  }
+
+  public static void setGcmRegistrationIdLastSetTime(Context context, long timestamp) {
+    setLongPreference(context, GCM_REGISTRATION_ID_TIME_PREF, timestamp);
+  }
+
   public static boolean isSmsEnabled(Context context) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
       return Util.isDefaultSmsProvider(context);
@@ -264,8 +302,40 @@ public class TextSecurePreferences {
     setLongPreference(context, DIRECTORY_FRESH_TIME_PREF, value);
   }
 
+  public static long getAutoRemoveTime(Context context) {
+    return getLongPreference(context, AUTO_REMOVE_TIME_PREF, 0L);
+  }
+
+  public static void setAutoRemoveTime(Context context, long value) {
+    setLongPreference(context, AUTO_REMOVE_TIME_PREF, value);
+  }
+
+  public static long getUpdateApkRefreshTime(Context context) {
+    return getLongPreference(context, UPDATE_APK_REFRESH_TIME_PREF, 0L);
+  }
+
+  public static void setUpdateApkRefreshTime(Context context, long value) {
+    setLongPreference(context, UPDATE_APK_REFRESH_TIME_PREF, value);
+  }
+
+  public static void setUpdateApkDownloadId(Context context, long value) {
+    setLongPreference(context, UPDATE_APK_DOWNLOAD_ID, value);
+  }
+
+  public static long getUpdateApkDownloadId(Context context) {
+    return getLongPreference(context, UPDATE_APK_DOWNLOAD_ID, -1);
+  }
+
+  public static void setUpdateApkDigest(Context context, String value) {
+    setStringPreference(context, UPDATE_APK_DIGEST, value);
+  }
+
+  public static String getUpdateApkDigest(Context context) {
+    return getStringPreference(context, UPDATE_APK_DIGEST, null);
+  }
+
   public static String getLocalNumber(Context context) {
-    return getStringPreference(context, LOCAL_NUMBER_PREF, "No Stored Number");
+    return getStringPreference(context, LOCAL_NUMBER_PREF, null);
   }
 
   public static void setLocalNumber(Context context, String localNumber) {
@@ -430,6 +500,14 @@ public class TextSecurePreferences {
     setIntegerPrefrence(context, LAST_EXPERIENCE_VERSION_PREF, versionCode);
   }
 
+  public static int getExperienceDismissedVersionCode(Context context) {
+    return getIntegerPreference(context, EXPERIENCE_DISMISSED_PREF, 0);
+  }
+
+  public static void setExperienceDismissedVersionCode(Context context, int versionCode) {
+    setIntegerPrefrence(context, EXPERIENCE_DISMISSED_PREF, versionCode);
+  }
+
   public static String getTheme(Context context) {
     return getStringPreference(context, THEME_PREF, "light");
   }
@@ -451,6 +529,10 @@ public class TextSecurePreferences {
     setBooleanPreference(context, REGISTERED_GCM_PREF, registered);
   }
 
+  public static boolean isShowInviteReminders(Context context) {
+    return getBooleanPreference(context, SHOW_INVITE_REMINDER_PREF, true);
+  }
+
   public static boolean isPassphraseTimeoutEnabled(Context context) {
     return getBooleanPreference(context, PASSPHRASE_TIMEOUT_PREF, false);
   }
@@ -461,6 +543,23 @@ public class TextSecurePreferences {
 
   public static void setPassphraseTimeoutInterval(Context context, int interval) {
     setIntegerPrefrence(context, PASSPHRASE_TIMEOUT_INTERVAL_PREF, interval);
+  }
+
+  public static void setAutoRemovePref(Context context, boolean enable) {
+    Log.w("TextSecurePreferences", "setAutoRemovePref: " + enable);
+    setBooleanPreference(context, AUTO_REMOVE_PREF, enable);
+  }
+
+  public static boolean isAutoRemoveEnabled(Context context) {
+    return getBooleanPreference(context, AUTO_REMOVE_PREF, false);
+  }
+
+  public static int getAutoRemoveTimeoutInterval(Context context) {
+    return getIntegerPreference(context, AUTO_REMOVE_TIMEOUT_INTERVAL_PREF, 15 * 60);
+  }
+
+  public static void setAutoRemoveTimeoutInterval(Context context, int interval) {
+    setIntegerPrefrence(context, AUTO_REMOVE_TIMEOUT_INTERVAL_PREF, interval);
   }
 
   public static String getLanguage(Context context) {

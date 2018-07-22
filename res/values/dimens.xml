@@ -66,4 +66,7 @@
     <dimen name="onboarding_subtitle_size">20sp</dimen>
 
     <dimen name="scribble_stroke_size">3dp</dimen>
+    <dimen name="application_name">16dp</dimen>
+    <dimen name="application_text">12dp</dimen>
+    <dimen name="application_padding">10dp</dimen>
 </resources>

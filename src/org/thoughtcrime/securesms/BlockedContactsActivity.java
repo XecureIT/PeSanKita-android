@@ -17,10 +17,10 @@ import android.widget.AdapterView;
 import android.widget.ListView;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.loaders.BlockedContactsLoader;
 import org.thoughtcrime.securesms.preferences.BlockedContactListItem;
-import org.thoughtcrime.securesms.recipients.RecipientFactory;
-import org.thoughtcrime.securesms.recipients.Recipients;
+import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.DynamicTheme;
 
@@ -103,9 +103,9 @@ public class BlockedContactsActivity extends PassphraseRequiredActionBarActivity
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-      Recipients recipients = ((BlockedContactListItem)view).getRecipients();
-      Intent     intent     = new Intent(getActivity(), RecipientPreferenceActivity.class);
-      intent.putExtra(RecipientPreferenceActivity.RECIPIENTS_EXTRA, recipients.getIds());
+      Recipient recipient = ((BlockedContactListItem)view).getRecipient();
+      Intent    intent    = new Intent(getActivity(), RecipientPreferenceActivity.class);
+      intent.putExtra(RecipientPreferenceActivity.ADDRESS_EXTRA, recipient.getAddress());
 
       startActivity(intent);
     }
@@ -124,10 +124,10 @@ public class BlockedContactsActivity extends PassphraseRequiredActionBarActivity
 
       @Override
       public void bindView(View view, Context context, Cursor cursor) {
-        String     recipientIds = cursor.getString(1);
-        Recipients recipients   = RecipientFactory.getRecipientsForIds(context, recipientIds, true);
+        String    address   = cursor.getString(1);
+        Recipient recipient = Recipient.from(context, Address.fromSerialized(address), true);
 
-        ((BlockedContactListItem) view).set(recipients);
+        ((BlockedContactListItem) view).set(recipient);
       }
     }
 

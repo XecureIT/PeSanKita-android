@@ -18,6 +18,7 @@ public interface MmsSmsColumns {
   public static final String SUBSCRIPTION_ID          = "subscription_id";
   public static final String EXPIRES_IN               = "expires_in";
   public static final String EXPIRE_STARTED           = "expire_started";
+  public static final String NOTIFIED                 = "notified";
 
   public static class Types {
     protected static final long TOTAL_MASK = 0xFFFFFFFF;
@@ -42,22 +43,23 @@ public interface MmsSmsColumns {
     protected static final long[] OUTGOING_MESSAGE_TYPES = {BASE_OUTBOX_TYPE, BASE_SENT_TYPE,
                                                             BASE_SENDING_TYPE, BASE_SENT_FAILED_TYPE,
                                                             BASE_PENDING_SECURE_SMS_FALLBACK,
-                                                            BASE_PENDING_INSECURE_SMS_FALLBACK};
+                                                            BASE_PENDING_INSECURE_SMS_FALLBACK,
+                                                            OUTGOING_CALL_TYPE};
 
     // Message attributes
     protected static final long MESSAGE_ATTRIBUTE_MASK = 0xE0;
     protected static final long MESSAGE_FORCE_SMS_BIT  = 0x40;
 
     // Key Exchange Information
-    protected static final long KEY_EXCHANGE_MASK                = 0xFF00;
-    protected static final long KEY_EXCHANGE_BIT                 = 0x8000;
-    protected static final long KEY_EXCHANGE_STALE_BIT           = 0x4000;
-    protected static final long KEY_EXCHANGE_PROCESSED_BIT       = 0x2000;
-    protected static final long KEY_EXCHANGE_CORRUPTED_BIT       = 0x1000;
-    protected static final long KEY_EXCHANGE_INVALID_VERSION_BIT =  0x800;
-    protected static final long KEY_EXCHANGE_BUNDLE_BIT          =  0x400;
-    protected static final long KEY_EXCHANGE_IDENTITY_UPDATE_BIT =  0x200;
-    protected static final long KEY_EXCHANGE_CONTENT_FORMAT      =  0x100;
+    protected static final long KEY_EXCHANGE_MASK                  = 0xFF00;
+    protected static final long KEY_EXCHANGE_BIT                   = 0x8000;
+    protected static final long KEY_EXCHANGE_IDENTITY_VERIFIED_BIT = 0x4000;
+    protected static final long KEY_EXCHANGE_IDENTITY_DEFAULT_BIT  = 0x2000;
+    protected static final long KEY_EXCHANGE_CORRUPTED_BIT         = 0x1000;
+    protected static final long KEY_EXCHANGE_INVALID_VERSION_BIT   = 0x800;
+    protected static final long KEY_EXCHANGE_BUNDLE_BIT            = 0x400;
+    protected static final long KEY_EXCHANGE_IDENTITY_UPDATE_BIT   = 0x200;
+    protected static final long KEY_EXCHANGE_CONTENT_FORMAT        = 0x100;
 
     // Secure Message Information
     protected static final long SECURE_MESSAGE_BIT = 0x800000;
@@ -96,6 +98,14 @@ public interface MmsSmsColumns {
       return false;
     }
 
+    public static long getOutgoingEncryptedMessageType() {
+      return Types.BASE_SENDING_TYPE | Types.SECURE_MESSAGE_BIT | Types.PUSH_MESSAGE_BIT;
+    }
+
+    public static long getOutgoingSmsMessageType() {
+      return Types.BASE_SENDING_TYPE;
+    }
+
     public static boolean isForcedSms(long type) {
       return (type & MESSAGE_FORCE_SMS_BIT) != 0;
     }
@@ -103,7 +113,7 @@ public interface MmsSmsColumns {
     public static boolean isPendingMessageType(long type) {
       return
           (type & BASE_TYPE_MASK) == BASE_OUTBOX_TYPE ||
-              (type & BASE_TYPE_MASK) == BASE_SENDING_TYPE;
+          (type & BASE_TYPE_MASK) == BASE_SENDING_TYPE;
     }
 
     public static boolean isPendingSmsFallbackType(long type) {
@@ -143,12 +153,12 @@ public interface MmsSmsColumns {
       return (type & KEY_EXCHANGE_BIT) != 0;
     }
 
-    public static boolean isStaleKeyExchange(long type) {
-      return (type & KEY_EXCHANGE_STALE_BIT) != 0;
+    public static boolean isIdentityVerified(long type) {
+      return (type & KEY_EXCHANGE_IDENTITY_VERIFIED_BIT) != 0;
     }
 
-    public static boolean isProcessedKeyExchange(long type) {
-      return (type & KEY_EXCHANGE_PROCESSED_BIT) != 0;
+    public static boolean isIdentityDefault(long type) {
+      return (type & KEY_EXCHANGE_IDENTITY_DEFAULT_BIT) != 0;
     }
 
     public static boolean isCorruptedKeyExchange(long type) {

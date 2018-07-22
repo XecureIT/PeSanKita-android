@@ -31,12 +31,15 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.crypto.SessionUtil;
 import org.thoughtcrime.securesms.push.AccountManagerFactory;
 import org.thoughtcrime.securesms.service.RegistrationService;
 import org.thoughtcrime.securesms.util.Dialogs;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
+import org.whispersystems.libsignal.util.KeyHelper;
 import org.whispersystems.signalservice.api.SignalServiceAccountManager;
+import org.whispersystems.signalservice.api.push.exceptions.AuthorizationFailedException;
 import org.whispersystems.signalservice.api.push.exceptions.ExpectationFailedException;
 import org.whispersystems.signalservice.api.push.exceptions.RateLimitException;
 import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
@@ -338,7 +341,9 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
     }
 
     shutdownService();
-    startActivity(new Intent(this, ConversationListActivity.class));
+    Intent intent = new Intent(this, CreateProfileActivity.class);
+    intent.putExtra(CreateProfileActivity.NEXT_INTENT, new Intent(this, ConversationListActivity.class));
+    startActivity(intent);
     finish();
   }
 
@@ -528,10 +533,12 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
         protected Integer doInBackground(Void... params) {
           try {
             SignalServiceAccountManager accountManager = AccountManagerFactory.createManager(context, e164number, password);
-            int                         registrationId = TextSecurePreferences.getLocalRegistrationId(context);
-            boolean                     video          = TextSecurePreferences.isWebrtcCallingEnabled(context);
+            int                         registrationId = KeyHelper.generateRegistrationId(false);
 
-            accountManager.verifyAccountWithCode(code, signalingKey, registrationId, true, video, !gcmSupported);
+            TextSecurePreferences.setLocalRegistrationId(context, registrationId);
+            SessionUtil.archiveAllSessions(context);
+
+            accountManager.verifyAccountWithCode(code, signalingKey, registrationId, !gcmSupported);
 
             return SUCCESS;
           } catch (ExpectationFailedException e) {
@@ -540,6 +547,9 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
           } catch (RateLimitException e) {
             Log.w(TAG, e);
             return RATE_LIMIT_ERROR;
+          } catch (AuthorizationFailedException e) {
+            Log.w(TAG, e);
+            return VERIFICATION_ERROR;
           } catch (IOException e) {
             Log.w(TAG, e);
             return NETWORK_ERROR;
