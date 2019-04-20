@@ -8,6 +8,7 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
@@ -20,6 +21,7 @@ import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.ResUtil;
 import org.thoughtcrime.securesms.util.spans.CenterAlignedRelativeSizeSpan;
+import org.thoughtcrime.securesms.util.Util;
 
 public class FromTextView extends EmojiTextView {
 
@@ -56,7 +58,7 @@ public class FromTextView extends EmojiTextView {
     fromSpan.setSpan(new StyleSpan(typeface), 0, builder.length(),
                      Spannable.SPAN_INCLUSIVE_EXCLUSIVE);
 
-    if (recipient.getName() == null && recipient.getProfileName() != null) {
+    if (recipient.getName() == null && !TextUtils.isEmpty(recipient.getProfileName())) {
       SpannableString profileName = new SpannableString(" (~" + recipient.getProfileName() + ") ");
       profileName.setSpan(new CenterAlignedRelativeSizeSpan(0.75f), 0, profileName.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
       profileName.setSpan(new TypefaceSpan("sans-serif-light"), 0, profileName.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -76,6 +78,7 @@ public class FromTextView extends EmojiTextView {
     colors.recycle();
 
     setText(builder);
+    if (Util.isOwnNumber(getContext(), recipient.getAddress())) setText(R.string.ConversationActivity_personal_notes);
 
     if      (recipient.isBlocked()) setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_block_grey600_18dp, 0, 0, 0);
     else if (recipient.isMuted())   setCompoundDrawablesWithIntrinsicBounds(R.drawable.ic_volume_off_grey600_18dp, 0, 0, 0);

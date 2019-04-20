@@ -28,7 +28,7 @@ public class OutgoingRinger {
   public OutgoingRinger(@NonNull Context context) {
     this.context        = context;
   }
-
+  
   public void start(Type type) {
     int soundId;
 

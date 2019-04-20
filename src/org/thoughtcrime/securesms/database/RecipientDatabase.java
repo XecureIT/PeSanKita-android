@@ -13,7 +13,6 @@ import android.util.Log;
 import com.annimon.stream.Stream;
 
 import org.thoughtcrime.securesms.color.MaterialColor;
-import org.thoughtcrime.securesms.contacts.avatars.ContactPhotoFactory;
 import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.Base64;
 import org.whispersystems.libsignal.util.Pair;
@@ -28,7 +27,6 @@ import java.util.Set;
 public class RecipientDatabase extends Database {
 
   private static final String TAG = RecipientDatabase.class.getSimpleName();
-  private static final String RECIPIENT_PREFERENCES_URI = "content://xecurechat/recipients/";
 
           static final String TABLE_NAME              = "recipient_preferences";
   private static final String ID                      = "_id";
@@ -121,7 +119,7 @@ public class RecipientDatabase extends Database {
 
     Cursor cursor = database.query(TABLE_NAME, new String[] {ID, ADDRESS}, BLOCK + " = 1",
                                    null, null, null, null, null);
-    cursor.setNotificationUri(context.getContentResolver(), Uri.parse(RECIPIENT_PREFERENCES_URI));
+    cursor.setNotificationUri(context.getContentResolver(), DatabaseContentProviders.Recipient.RECIPIENT_PREFERENCES_URI);
 
     return cursor;
   }
@@ -330,7 +328,7 @@ public class RecipientDatabase extends Database {
       inactiveRecipient.setRegistered(RegisteredState.NOT_REGISTERED);
     }
 
-    context.getContentResolver().notifyChange(Uri.parse(RECIPIENT_PREFERENCES_URI), null);
+    context.getContentResolver().notifyChange(DatabaseContentProviders.Recipient.RECIPIENT_PREFERENCES_URI, null);
   }
 
   public List<Address> getRegistered() {
@@ -356,7 +354,7 @@ public class RecipientDatabase extends Database {
     database.setTransactionSuccessful();
     database.endTransaction();
 
-    context.getContentResolver().notifyChange(Uri.parse(RECIPIENT_PREFERENCES_URI), null);
+    context.getContentResolver().notifyChange(DatabaseContentProviders.Recipient.RECIPIENT_PREFERENCES_URI, null);
   }
 
   private void updateOrInsert(SQLiteDatabase database, Address address, ContentValues contentValues) {
@@ -390,9 +388,9 @@ public class RecipientDatabase extends Database {
       database.setTransactionSuccessful();
       database.endTransaction();
 
-      Stream.of(pendingDisplayNames).forEach(pair -> pair.first().resolve().setSystemDisplayName(pair.second()));
+      Stream.of(pendingDisplayNames).forEach(pair -> pair.first().resolve().setName(pair.second()));
 
-      context.getContentResolver().notifyChange(Uri.parse(RECIPIENT_PREFERENCES_URI), null);
+      context.getContentResolver().notifyChange(DatabaseContentProviders.Recipient.RECIPIENT_PREFERENCES_URI, null);
     }
   }
 
@@ -467,7 +465,7 @@ public class RecipientDatabase extends Database {
     }
 
     public Optional<Integer> getDefaultSubscriptionId() {
-      return defaultSubscriptionId != -1 ? Optional.of(defaultSubscriptionId) : Optional.<Integer>absent();
+      return defaultSubscriptionId != -1 ? Optional.of(defaultSubscriptionId) : Optional.absent();
     }
 
     public int getExpireMessages() {

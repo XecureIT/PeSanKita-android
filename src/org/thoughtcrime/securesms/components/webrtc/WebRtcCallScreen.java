@@ -18,31 +18,28 @@
 package org.thoughtcrime.securesms.components.webrtc;
 
 import android.content.Context;
-import android.net.Uri;
-import android.os.AsyncTask;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.view.ViewCompat;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextUtils;
 import android.text.method.LinkMovementMethod;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+
 import org.thoughtcrime.securesms.R;
-import org.thoughtcrime.securesms.contacts.avatars.ContactPhoto;
-import org.thoughtcrime.securesms.contacts.avatars.ContactPhotoFactory;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
 import org.thoughtcrime.securesms.service.WebRtcCallService;
@@ -284,27 +281,19 @@ public class WebRtcCallScreen extends FrameLayout implements RecipientModifiedLi
     this.recipient = recipient;
     this.recipient.addListener(this);
 
-    final Context context = getContext();
-
-    new AsyncTask<Void, Void, ContactPhoto>() {
-      @Override
-      protected ContactPhoto doInBackground(Void... params) {
-        DisplayMetrics metrics       = new DisplayMetrics();
-        WindowManager  windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
-        Uri            contentUri    = ContactsContract.Contacts.lookupContact(context.getContentResolver(),
-                                                                               recipient.getContactUri());
-        windowManager.getDefaultDisplay().getMetrics(metrics);
-        return ContactPhotoFactory.getContactPhoto(context, contentUri, recipient.getAddress(), null, metrics.widthPixels);
-      }
-
-      @Override
-      protected void onPostExecute(final ContactPhoto contactPhoto) {
-        WebRtcCallScreen.this.photo.setImageDrawable(contactPhoto.asCallCard(context));
-      }
-    }.execute();
+    GlideApp.with(getContext().getApplicationContext())
+            .load(recipient.getContactPhoto())
+            .fallback(recipient.getFallbackContactPhoto().asCallCard(getContext()))
+            .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .into(this.photo);
 
     this.name.setText(recipient.getName());
-    this.phoneNumber.setText(recipient.getAddress().serialize());
+
+    if (recipient.getName() == null && !TextUtils.isEmpty(recipient.getProfileName())) {
+      this.phoneNumber.setText(recipient.getAddress().serialize() + " (~" + recipient.getProfileName() + ")");
+    } else {
+      this.phoneNumber.setText(recipient.getAddress().serialize());
+    }
   }
 
   private void setCard(Recipient recipient, String status) {

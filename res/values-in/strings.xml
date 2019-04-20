@@ -58,7 +58,11 @@
   <string name="AudioSlidePlayer_error_playing_audio">Galat memutar audio!</string>
   <!--BlockedContactsActivity-->
   <string name="BlockedContactsActivity_blocked_contacts">Kontak yang diblokir</string>
-
+  <!--BucketedThreadMedia-->
+  <string name="BucketedThreadMedia_Today">Hari ini</string>
+  <string name="BucketedThreadMedia_Yesterday">Kemarin</string>
+  <string name="BucketedThreadMedia_This_week">Minggu ini</string>
+  <string name="BucketedThreadMedia_This_month">Bulan ini</string>
   <!--CallScreen-->
   <string name="CallScreen_Incoming_call">Panggilan masuk</string>
 
@@ -135,6 +139,7 @@
   <string name="ConversationActivity_unable_to_record_audio">Tidak bisa merekam audio!</string>
   <string name="ConversationActivity_error_sending_voice_message">Galat saat mengirim pesan suara</string>
   <string name="ConversationActivity_there_is_no_app_available_to_handle_this_link_on_your_device">Tidak ada aplikasi tersedia untuk menangani tautan ini pada perangkat Anda</string>
+  <string name="ConversationActivity_personal_notes">Catatan Pribadi</string>
   <!-- ConversationAdapter -->
   <plurals name="ConversationAdapter_n_unread_messages">
     <item quantity="one">%d pesan belum dibaca</item>
@@ -377,6 +382,9 @@ telah mengimpor basis data sistem SMS, hal ini akan menyebabkan adanya duplikasi
   <string name="MmsDownloader_error_storing_mms">Galat saat menyimpan MMS!</string>
   <string name="MmsDownloader_error_connecting_to_mms_provider">Galat saat menyambung ke penyedia MMS</string>
   <string name="MmsDownloader_error_reading_mms_settings">Galat saat membaca pengaturan MMS penyedia nirkabel</string>
+  <!--MediaOverviewActivity-->
+  <string name="MediaOverviewActivity_Media">Media</string>
+  <string name="MediaOverviewActivity_Documents">Dokumen</string>
   <!--- NotificationBarManager-->
   <string name="NotificationBarManager_signal_call_in_progress">Kemajuan panggilan masuk PeSankita</string>
   <string name="NotificationBarManager_missed_call_from_s">Panggilan tak terjawab dari %s</string>
@@ -513,7 +521,7 @@ isikan (%s) tidak tepat.
   <string name="RegistrationActivity_more_information">Informasi lebih lanjut</string>
   <string name="RegistrationActivity_less_information">Kurang informasi</string>
   <!--RegistrationProblemsActivity-->
-  <string name="RegistrationProblemsActivity_possible_problems">Masalah yang mungkin terjadi</string>
+  <string name="RegistrationProblemsActivity_possible_problems">Tidak menerima SMS?</string>
   <!--RegistrationProgressActivity-->
   <string name="RegistrationProgressActivity_verifying_number">Memverifikasi Nomor</string>
   <string name="RegistrationProgressActivity_edit_s">Edit %s</string>
@@ -540,6 +548,14 @@ isikan (%s) tidak tepat.
   <string name="RegistrationService_signal_registration_has_successfully_completed">Pendaftaran PeSankita telah lengkap dan berhasil.</string>
   <string name="RegistrationService_registration_error">Pendaftaran gagal</string>
   <string name="RegistrationService_signal_registration_has_encountered_a_problem">Pendaftaran PeSankita mengalami masalah.</string>
+  <!--RingtonePreference-->
+  <string name="RingtonePreference_ringtone_silent">Kosong</string>
+  <string name="RingtonePreference_ringtone_default">Nada dering bawaan</string>
+  <string name="RingtonePreference_ringtone_picker_title">Nada dering</string>
+  <string name="RingtonePreference_notification_sound_default">Suara pemberitahuan bawaan</string>
+  <string name="RingtonePreference_alarm_sound_default">Suara alarm bawaan</string>
+  <string name="RingtonePreference_add_ringtone_text">Tambah nada dering</string>
+  <string name="RingtonePreference_unable_to_add_ringtone">Gagal menambahkan nada dering khusus</string>
   <!--Slide-->
   <string name="Slide_image">Gambar</string>
   <string name="Slide_audio">Audio</string>
@@ -635,6 +651,15 @@ Diterima pesan pertukaran kunci untuk versi protokol yang tidak valid.
   <string name="MessageNotifier_reply">Balas</string>
   <string name="MessageNotifier_pending_signal_messages">PeSan tertunda</string>
   <string name="MessageNotifier_you_have_pending_signal_messages">Anda memiliki PeSan tertunda, ketuk untuk membuka dan mengambil</string>
+
+  <!--Notification Channels-->
+  <string name="NotificationChannel_messages">Pesan</string>
+  <string name="NotificationChannel_calls">Panggilan</string>
+  <string name="NotificationChannel_failures">Gagal</string>
+  <string name="NotificationChannel_backups">Cadangan</string>
+  <string name="NotificationChannel_locked_status">Status kunci</string>
+  <string name="NotificationChannel_app_updates">Update aplikasi</string>
+  <string name="NotificationChannel_other">Lainnya</string>
 
   <!--QuickResponseService-->
   <string name="QuickResponseService_quick_response_unavailable_when_Signal_is_locked">Tanggapan cepat tidak tersedia ketika PeSankita sedang dikunci!</string>
@@ -801,6 +826,9 @@ Diterima pesan pertukaran kunci untuk versi protokol yang tidak valid.
   <string name="recipient_preferences__color">Warna</string>
   <string name="recipient_preferences__color_for_this_contact">Warna untuk kontak ini</string>
   <string name="recipient_preferences__view_safety_number">Lihat angka keamanan</string>
+  <string name="recipient_preferences__chat_settings">Setelan obrolan</string>
+  <string name="recipient_preferences__privacy">Privasi</string>
+
   <!--- redphone_call_controls-->
   <string name="redphone_call_card__signal_call">Panggilan PeSankita</string>
   <string name="redphone_call_controls__end_call">akhiri panggilan</string>
@@ -878,11 +906,9 @@ server PeSankita. Coba jaringan lain atau gunakan data seluler.
         akan memakan waktu sejenak. Mohon sabar, kami akan beritahu Anda ketika verifikasi telah berhasil.
     </string>
   <string name="registration_progress_activity__signal_timed_out_while_waiting_for_a_verification_sms_message">
-        PeSankita kehabisan waktu saat menunggu pesan verifikasi SMS.
-    </string>
-  <string name="registration_progress_activity__sms_verification_failed">Verifikasi SMS
-gagal
-</string>
+        Masukkan kode verifikasi yang dikirim ke %s.
+  </string>
+  <string name="registration_progress_activity__sms_verification_failed">Memverifikasi %s</string>
   <string name="registration_progress_activity__verification_code_send">Kirim</string>
   <string name="registration_progress_activity__input_verification_code">Masukkan kode verifikasi Anda</string>
   <string name="registration_progress_activity__generating_keys">Membuat kunci...</string>
@@ -971,8 +997,10 @@ gagal
   <string name="preferences__enable_passphrase">Aktifkan frasa sandi</string>
   <string name="preferences__lock_signal_and_message_notifications_with_a_passphrase">Kunci PeSankita dan notifikasi pesan dengan frasa sandi</string>
   <string name="preferences__screen_security">Keamanan Layar</string>
-  <string name="preferences__auto_remove_saved_files">Hapus otomatis berkas tersimpan</string>
-  <string name="preferences__auto_remove_saved_files_interval">Interval hapus otomatis berkas tersimpan</string>
+  <string name="preferences__auto_remove_saved_media">Hapus media tersimpan</string>
+  <string name="preferences__auto_remove_saved_media_desc">otomatis menghapus media tersimpan dalam interval waktu tertentu dengan batasan umur media</string>
+  <string name="preferences__auto_remove_saved_media_interval">Interval menghapus media tersimpan</string>
+  <string name="preferences__saved_media_age">Batas umur media tersimpan</string>
   <string name="preferences__disable_screen_security_to_allow_screen_shots">Blokir tangkapan layar di daftar terbaru dan di dalam aplikasi</string>
   <string name="preferences__auto_lock_signal_after_a_specified_time_interval_of_inactivity">Otomatis kunci PeSankita setelah tidak aktif selama waktu tertentu</string>
   <string name="preferences__inactivity_timeout_passphrase">Frasa sandi habis waktu karena tiada aktivitas</string>
@@ -1047,6 +1075,8 @@ gagal
   <string name="preferences__app_version">Versi PeSankita</string>
   <string name="preferences__support_wifi_calling">Mode kompatibilitas \'Panggilan WiFi\'</string>
   <string name="preferences__enable_if_your_device_supports_sms_mms_delivery_over_wifi">Aktifkan jika perangkat Anda menggunakan pengiriman SMS/MMS melalui WiFi (hanya berfungsi ketika \'Panggilan WiFi\' aktif di perangkat Anda)</string>
+  <string name="preferences__incognito_keyboard">Keyboard penyamaran</string>
+  <string name="preferences__request_keyboard_to_disable_personalized_learning">Meminta keyboard untuk menonaktifkan personalisasi pembelajaran</string>
   <string name="preferences_app_protection__blocked_contacts">Kontak yang diblokir</string>
   <string name="preferences_app_protection__safety_numbers_approval">Persetujuan nomor keamanan</string>
   <string name="preferences_app_protecting__require_approval_of_new_safety_numbers_when_they_change">Perlu persetujuan nomor keamanan baru saat mereka berubah</string>
@@ -1055,6 +1085,7 @@ gagal
   <string name="preferences_chats__when_using_wifi">Ketika menggunakan Wi-Fi</string>
   <string name="preferences_chats__when_roaming">Ketika roaming</string>
   <string name="preferences_chats__media_auto_download">Otomatis unduh media</string>
+  <string name="preferences_chats__auto_remove_saved_media">Otomatis hapus media tersimpan</string>
   <string name="preferences_chats__message_trimming">Penyingkatan pesan</string>
   <string name="preferences_advanced__use_system_emoji">Gunakan emoji sistem</string>
   <string name="preferences_advanced__disable_signal_built_in_emoji_support">Nonaktifkan dukungan emoji PeSankita bawaan</string>
@@ -1205,6 +1236,16 @@ gagal
   <string name="trimmer__old_messages_successfully_deleted">Pesan lama berhasil dihapus</string>
   <!--transport_selection_list_item-->
   <string name="transport_selection_list_item__transport_icon">Ikon transpor</string>
+
+  <string name="conversation_item_sent__message_read">Pesan dibaca</string>
+  <string name="preferences__read_receipts">Laporan dibaca</string>
+  <string name="preferences__if_read_receipts_are_disabled_you_wont_be_able_to_see_read_receipts">Jika Anda menonaktifkan laporan dibaca, Anda tidak akan dapat melihat laporan dibaca dari orang lain.</string>
+
+  <string name="media_overview_documents_fragment__no_documents_found">Tidak ada dokumen</string>
+  <string name="experience_upgrade_preference_fragment__read_receipts_are_here">Laporan dibaca telah hadir</string>
+  <string name="experience_upgrade_preference_fragment__optionally_see_and_share_when_messages_have_been_read">Secara opsional, lihat dan bagikan ketika pesan sudah dibaca</string>
+  <string name="experience_upgrade_preference_fragment__enable_read_receipts">Aktifkan laporan dibaca</string>
+  <string name="recipient_preference_activity__shared_media">Bagikan media</string>
 
   <string name="AndroidManifest__all_media">Semua media</string>
   <string name="AndroidManifest__all_media_named">Semua media dengan %1$s</string>

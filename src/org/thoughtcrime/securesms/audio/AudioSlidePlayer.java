@@ -308,8 +308,8 @@ public class AudioSlidePlayer implements SensorEventListener {
         Log.w(TAG, e);
       }
     } else if (streamType == AudioManager.STREAM_MUSIC &&
-        mediaPlayer.getAudioStreamType() != streamType &&
-        System.currentTimeMillis() - startTime > 500)
+               mediaPlayer.getAudioStreamType() != streamType &&
+               System.currentTimeMillis() - startTime > 500)
     {
       if (wakeLock != null) wakeLock.release();
       stop();

@@ -6,7 +6,7 @@
               android:orientation="vertical"
               tools:background="#FF2090ea">
 
-<TextView android:layout_width="match_parent"
+    <TextView android:layout_width="match_parent"
               android:layout_height="0dp"
               android:layout_weight="1"
               android:textAppearance="?android:attr/textAppearanceMedium"
@@ -27,7 +27,7 @@
                android:layout_weight="1"
                android:scaleType="fitCenter"
                tools:src="@mipmap/splash_logo"
-               android:layout_gravity="center_horizontal" />
+               android:layout_gravity="center_horizontal"/>
 
     <TextView android:layout_width="match_parent"
               android:layout_height="0dp"

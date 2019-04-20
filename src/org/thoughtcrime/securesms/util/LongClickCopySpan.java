@@ -28,7 +28,7 @@ public class LongClickCopySpan extends URLSpan {
     String preparedUrl = prepareUrl(getURL());
     copyUrl(context, preparedUrl);
     Toast.makeText(context,
-        context.getString(R.string.ConversationItem_copied_text, preparedUrl), Toast.LENGTH_SHORT).show();
+            context.getString(R.string.ConversationItem_copied_text, preparedUrl), Toast.LENGTH_SHORT).show();
   }
 
   @Override
@@ -47,7 +47,7 @@ public class LongClickCopySpan extends URLSpan {
     int sdk = android.os.Build.VERSION.SDK_INT;
     if (sdk < android.os.Build.VERSION_CODES.HONEYCOMB) {
       @SuppressWarnings("deprecation") android.text.ClipboardManager clipboard =
-          (android.text.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+              (android.text.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
       clipboard.setText(url);
     } else {
       copyUriSdk11(context, url);
@@ -57,7 +57,7 @@ public class LongClickCopySpan extends URLSpan {
   @TargetApi(android.os.Build.VERSION_CODES.HONEYCOMB)
   private void copyUriSdk11(Context context, String url) {
     android.content.ClipboardManager clipboard =
-        (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            (android.content.ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
     ClipData clip = ClipData.newPlainText(context.getString(R.string.app_name), url);
     clipboard.setPrimaryClip(clip);
   }

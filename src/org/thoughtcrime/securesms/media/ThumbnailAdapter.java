@@ -9,14 +9,13 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.RequestManager;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.MediaFragment;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.mms.DecryptableStreamUriLoader;
+import org.thoughtcrime.securesms.mms.GlideApp;
 
 import java.util.ArrayList;
 
@@ -56,7 +55,6 @@ public class ThumbnailAdapter extends RecyclerView.Adapter<ThumbnailAdapter.view
 
     if (item.size() > 0) {
       for (int i = 0; i < item.size(); i++) {
-        RequestManager glide  = Glide.with(context);
         final Media media     = fragment.getItem(item, i);
 
         if (i == 0) {
@@ -70,19 +68,19 @@ public class ThumbnailAdapter extends RecyclerView.Adapter<ThumbnailAdapter.view
         }
 
         if (media.getUri() != null) {
-          glide.load(new DecryptableStreamUriLoader.DecryptableUri(masterSecret, media.getUri()))
-              .crossFade()
-              .centerCrop()
-              .diskCacheStrategy(DiskCacheStrategy.NONE)
-              .skipMemoryCache(true)
-              .into(imageView);
+          GlideApp.with(context).load(new DecryptableStreamUriLoader.DecryptableUri(masterSecret, media.getUri()))
+                  //.crossFade()
+                  .centerCrop()
+                  .diskCacheStrategy(DiskCacheStrategy.NONE)
+                  .skipMemoryCache(true)
+                  .into(imageView);
         } else {
-          glide.load(R.drawable.ic_video_light)
-              .crossFade()
-              .centerCrop()
-              .diskCacheStrategy(DiskCacheStrategy.NONE)
-              .skipMemoryCache(true)
-              .into(imageView);
+          GlideApp.with(context).load(R.drawable.ic_video_light)
+                  //.crossFade()
+                  .centerCrop()
+                  .diskCacheStrategy(DiskCacheStrategy.NONE)
+                  .skipMemoryCache(true)
+                  .into(imageView);
         }
       }
     } else {

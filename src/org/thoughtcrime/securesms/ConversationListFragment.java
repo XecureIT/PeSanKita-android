@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2015 Open Whisper Systems
  *
  * This program is free software: you can redistribute it and/or modify
@@ -67,6 +67,7 @@ import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.MessagingDatabase.MarkedMessageInfo;
 import org.thoughtcrime.securesms.database.loaders.ConversationListLoader;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.notifications.MarkReadReceiver;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
 import org.thoughtcrime.securesms.recipients.Recipient;
@@ -156,13 +157,21 @@ public class ConversationListFragment extends Fragment
     list.getAdapter().notifyDataSetChanged();
   }
 
+  public void notifyDataSetChanged() {
+    if (list != null && list.getAdapter() != null) {
+      list.getAdapter().notifyDataSetChanged();
+    }
+  }
+
   public ConversationListAdapter getListAdapter() {
     return (ConversationListAdapter) list.getAdapter();
   }
 
   public void setQueryFilter(String query) {
     this.queryFilter = query;
-    getLoaderManager().restartLoader(0, null, this);
+    if (!isDetached() && !isRemoving() && getActivity() != null && !getActivity().isFinishing()) {
+      getLoaderManager().restartLoader(0, null, this);
+    }
   }
 
   public void resetQueryFilter() {
@@ -200,11 +209,11 @@ public class ConversationListFragment extends Fragment
           reminderView.showReminder(reminder.get());
         }
       }
-    }.execute(getActivity());
+    }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, getActivity());
   }
 
   private void initializeListAdapter() {
-    list.setAdapter(new ConversationListAdapter(getActivity(), masterSecret, locale, null, this));
+    list.setAdapter(new ConversationListAdapter(getActivity(), masterSecret, GlideApp.with(this), locale, null, this));
     getLoaderManager().restartLoader(0, null, this);
   }
 
@@ -251,7 +260,7 @@ public class ConversationListFragment extends Fragment
           else          DatabaseFactory.getThreadDatabase(getActivity()).archiveConversation(threadId);
         }
       }
-    }.execute();
+    }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private void handleDeleteAllSelected() {
@@ -297,7 +306,7 @@ public class ConversationListFragment extends Fragment
                 actionMode = null;
               }
             }
-          }.execute();
+          }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
       }
     });
@@ -466,7 +475,7 @@ public class ConversationListFragment extends Fragment
           protected void reverseAction(@Nullable Long parameter) {
             DatabaseFactory.getThreadDatabase(getActivity()).archiveConversation(threadId);
           }
-        }.execute(threadId);
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, threadId);
       } else {
         new SnackbarAsyncTask<Long>(getView(),
                                     getResources().getQuantityString(R.plurals.ConversationListFragment_conversations_archived, 1, 1),
@@ -494,7 +503,7 @@ public class ConversationListFragment extends Fragment
               MessageNotifier.updateNotification(getActivity(), masterSecret);
             }
           }
-        }.execute(threadId);
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, threadId);
       }
     }
 

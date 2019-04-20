@@ -172,8 +172,12 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
   }
 
   private void initializeLinks() {
+    TextView        failureTitle    = (TextView) findViewById(R.id.sms_failed_title);
+    String          title           = getString(R.string.registration_progress_activity__sms_verification_failed,
+                                      getNumberDirective());
     TextView        failureText     = (TextView) findViewById(R.id.sms_failed_text);
-    String          pretext         = getString(R.string.registration_progress_activity__signal_timed_out_while_waiting_for_a_verification_sms_message);
+    String          pretext         = getString(R.string.registration_progress_activity__signal_timed_out_while_waiting_for_a_verification_sms_message,
+                                      getNumberDirective());
     String          link            = getString(R.string.RegistrationProblemsActivity_possible_problems);
     SpannableString spannableString = new SpannableString(pretext + " " + link);
 
@@ -188,6 +192,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
       }
     }, pretext.length() + 1, spannableString.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
+    failureTitle.setText(title);
     failureText.setText(spannableString);
     failureText.setMovementMethod(LinkMovementMethod.getInstance());
   }
@@ -236,7 +241,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
     this.verificationText.setTextColor(UNFOCUSED_COLOR);
     this.generatingKeysText.setTextColor(UNFOCUSED_COLOR);
     this.gcmRegistrationText.setTextColor(UNFOCUSED_COLOR);
-    this.timeoutProgressLayout.setVisibility(View.VISIBLE);
+    this.timeoutProgressLayout.setVisibility(View.GONE);
   }
 
   private void handleStateVerifying() {
@@ -256,7 +261,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
     this.generatingKeysText.setTextColor(UNFOCUSED_COLOR);
     this.gcmRegistrationText.setTextColor(UNFOCUSED_COLOR);
     this.registrationProgress.setVisibility(View.VISIBLE);
-    this.timeoutProgressLayout.setVisibility(View.VISIBLE);
+    this.timeoutProgressLayout.setVisibility(View.GONE);
   }
 
   private void handleStateGeneratingKeys() {
@@ -276,7 +281,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
     this.generatingKeysText.setTextColor(FOCUSED_COLOR);
     this.gcmRegistrationText.setTextColor(UNFOCUSED_COLOR);
     this.registrationProgress.setVisibility(View.INVISIBLE);
-    this.timeoutProgressLayout.setVisibility(View.INVISIBLE);
+    this.timeoutProgressLayout.setVisibility(View.GONE);
   }
 
   private void handleStateGcmRegistering() {
@@ -296,7 +301,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
     this.generatingKeysText.setTextColor(UNFOCUSED_COLOR);
     this.gcmRegistrationText.setTextColor(FOCUSED_COLOR);
     this.registrationProgress.setVisibility(View.INVISIBLE);
-    this.timeoutProgressLayout.setVisibility(View.INVISIBLE);
+    this.timeoutProgressLayout.setVisibility(View.GONE);
   }
 
   private void handleGcmTimeout(RegistrationState state) {
@@ -555,7 +560,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
             return NETWORK_ERROR;
           }
         }
-      }.execute();
+      }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
   }
 
@@ -644,7 +649,7 @@ public class RegistrationProgressActivity extends BaseActionBarActivity {
             return NETWORK_ERROR;
           }
         }
-      }.execute();
+      }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
   }

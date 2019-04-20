@@ -13,6 +13,7 @@ import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.dependencies.InjectableType;
 import org.thoughtcrime.securesms.gcm.GcmBroadcastReceiver;
 import org.thoughtcrime.securesms.jobs.PushContentReceiveJob;
+import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.whispersystems.jobqueue.requirements.NetworkRequirement;
 import org.whispersystems.jobqueue.requirements.NetworkRequirementProvider;
@@ -105,7 +106,7 @@ public class MessageRetrievalService extends Service implements InjectableType, 
 
   private void setForegroundIfNecessary() {
     if (TextSecurePreferences.isGcmDisabled(this)) {
-      NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+      NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationChannels.OTHER);
       builder.setContentTitle(getString(R.string.MessageRetrievalService_signal));
       builder.setContentText(getString(R.string.MessageRetrievalService_background_connection_enabled));
       builder.setPriority(NotificationCompat.PRIORITY_MIN);
@@ -144,7 +145,7 @@ public class MessageRetrievalService extends Service implements InjectableType, 
     boolean isGcmDisabled = TextSecurePreferences.isGcmDisabled(this);
 
     Log.w(TAG, String.format("Network requirement: %s, active activities: %s, push pending: %s, gcm disabled: %b",
-            networkRequirement.isPresent(), activeActivities, pushPending.size(), isGcmDisabled));
+                             networkRequirement.isPresent(), activeActivities, pushPending.size(), isGcmDisabled));
 
     return TextSecurePreferences.isPushRegistered(this)                       &&
            TextSecurePreferences.isWebsocketRegistered(this)                  &&
@@ -189,6 +190,7 @@ public class MessageRetrievalService extends Service implements InjectableType, 
     private AtomicBoolean stopThread = new AtomicBoolean(false);
 
     MessageRetrievalThread() {
+      super("MessageRetrievalService");
       setUncaughtExceptionHandler(this);
     }
 
@@ -208,17 +210,17 @@ public class MessageRetrievalService extends Service implements InjectableType, 
             try {
               Log.w(TAG, "Reading message...");
               localPipe.read(REQUEST_TIMEOUT_MINUTES, TimeUnit.MINUTES,
-                      new SignalServiceMessagePipe.MessagePipeCallback() {
-                        @Override
-                        public void onMessage(SignalServiceEnvelope envelope) {
-                          Log.w(TAG, "Retrieved envelope! " + envelope.getSource());
+                             new SignalServiceMessagePipe.MessagePipeCallback() {
+                               @Override
+                               public void onMessage(SignalServiceEnvelope envelope) {
+                                 Log.w(TAG, "Retrieved envelope! " + envelope.getSource());
 
-                          PushContentReceiveJob receiveJob = new PushContentReceiveJob(MessageRetrievalService.this);
-                          receiveJob.handle(envelope, false);
+                                 PushContentReceiveJob receiveJob = new PushContentReceiveJob(MessageRetrievalService.this);
+                                 receiveJob.handle(envelope);
 
-                          decrementPushReceived();
-                        }
-                      });
+                                 decrementPushReceived();
+                               }
+                             });
             } catch (TimeoutException e) {
               Log.w(TAG, "Application level read timeout...");
             } catch (InvalidVersionException e) {

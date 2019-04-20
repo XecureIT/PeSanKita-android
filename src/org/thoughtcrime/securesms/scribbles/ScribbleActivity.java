@@ -18,6 +18,8 @@ import android.view.View;
 import org.thoughtcrime.securesms.PassphraseRequiredActionBarActivity;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.mms.GlideRequests;
 import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
 import org.thoughtcrime.securesms.scribbles.viewmodel.Font;
 import org.thoughtcrime.securesms.scribbles.viewmodel.Layer;
@@ -29,6 +31,7 @@ import org.thoughtcrime.securesms.scribbles.widget.entity.ImageEntity;
 import org.thoughtcrime.securesms.scribbles.widget.entity.MotionEntity;
 import org.thoughtcrime.securesms.scribbles.widget.entity.TextEntity;
 import org.thoughtcrime.securesms.util.MediaUtil;
+import org.thoughtcrime.securesms.util.Util;
 import org.thoughtcrime.securesms.util.concurrent.ListenableFuture;
 
 import java.io.ByteArrayOutputStream;
@@ -47,22 +50,24 @@ public class ScribbleActivity extends PassphraseRequiredActionBarActivity implem
   private ScribbleToolbar          toolbar;
   private ScribbleView             scribbleView;
   private MasterSecret             masterSecret;
+  private GlideRequests            glideRequests;
 
   @Override
   protected void onCreate(Bundle savedInstanceState, @NonNull MasterSecret masterSecret) {
     setContentView(R.layout.scribble_activity);
 
-    this.masterSecret = masterSecret;
-    this.scribbleView = (ScribbleView) findViewById(R.id.scribble_view);
-    this.toolbar      = (ScribbleToolbar) findViewById(R.id.toolbar);
-    this.colorPicker  = (VerticalSlideColorPicker) findViewById(R.id.scribble_color_picker);
+    this.masterSecret  = masterSecret;
+    this.glideRequests = GlideApp.with(this);
+    this.scribbleView  = findViewById(R.id.scribble_view);
+    this.toolbar       = findViewById(R.id.toolbar);
+    this.colorPicker   = findViewById(R.id.scribble_color_picker);
 
     this.toolbar.setListener(this);
     this.toolbar.setToolColor(Color.RED);
 
     scribbleView.setMotionViewCallback(motionViewCallback);
     scribbleView.setDrawingMode(false);
-    scribbleView.setImage(getIntent().getData(), masterSecret);
+    scribbleView.setImage(masterSecret, glideRequests, getIntent().getData());
 
     colorPicker.setOnColorChangeListener(this);
     colorPicker.setVisibility(View.GONE);
@@ -74,14 +79,11 @@ public class ScribbleActivity extends PassphraseRequiredActionBarActivity implem
   }
 
   private void addSticker(final Bitmap pica) {
-    scribbleView.post(new Runnable() {
-      @Override
-      public void run() {
-        Layer       layer  = new Layer();
-        ImageEntity entity = new ImageEntity(layer, pica, scribbleView.getWidth(), scribbleView.getHeight());
+    Util.runOnMain(() -> {
+      Layer       layer  = new Layer();
+      ImageEntity entity = new ImageEntity(layer, pica, scribbleView.getWidth(), scribbleView.getHeight());
 
-        scribbleView.addEntityAndPosition(entity);
-      }
+      scribbleView.addEntityAndPosition(entity);
     });
   }
 
@@ -167,7 +169,7 @@ public class ScribbleActivity extends PassphraseRequiredActionBarActivity implem
             protected void onPostExecute(@Nullable Bitmap bitmap) {
               addSticker(bitmap);
             }
-          }.execute();
+          }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
       }
     }
@@ -216,7 +218,7 @@ public class ScribbleActivity extends PassphraseRequiredActionBarActivity implem
 
   @Override
   public void onSave() {
-    ListenableFuture<Bitmap> future = scribbleView.getRenderedImage();
+    ListenableFuture<Bitmap> future = scribbleView.getRenderedImage(glideRequests);
 
     future.addListener(new ListenableFuture.Listener<Bitmap>() {
       @Override

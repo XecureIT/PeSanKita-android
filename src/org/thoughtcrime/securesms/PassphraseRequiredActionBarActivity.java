@@ -117,7 +117,7 @@ public abstract class PassphraseRequiredActionBarActivity extends BaseActionBarA
     setArgs(fragment, masterSecret, locale, extras);
     getSupportFragmentManager().beginTransaction()
                                .replace(target, fragment)
-                               .commit();
+                               .commitAllowingStateLoss();
     return fragment;
   }
 

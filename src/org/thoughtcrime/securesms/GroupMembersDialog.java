@@ -7,6 +7,7 @@ import android.graphics.Rect;
 import android.os.AsyncTask;
 import android.provider.ContactsContract;
 import android.support.v7.app.AlertDialog;
+import android.text.TextUtils;
 
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.recipients.Recipient;
@@ -51,7 +52,7 @@ public class GroupMembersDialog extends AsyncTask<Void, Void, List<Recipient>> {
   }
 
   public void display() {
-    execute();
+    executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private static class GroupMembersOnClickListener implements DialogInterface.OnClickListener {
@@ -137,7 +138,7 @@ public class GroupMembersDialog extends AsyncTask<Void, Void, List<Recipient>> {
         } else {
           String name = recipient.toShortString();
 
-          if (recipient.getName() == null && recipient.getProfileName() != null) {
+          if (recipient.getName() == null && !TextUtils.isEmpty(recipient.getProfileName())) {
             name += " ~" + recipient.getProfileName();
           }
 

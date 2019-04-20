@@ -1,7 +1,10 @@
 package org.thoughtcrime.securesms;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Vibrator;
@@ -17,6 +20,7 @@ import android.widget.Toast;
 import org.thoughtcrime.securesms.crypto.IdentityKeyUtil;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.ProfileKeyUtil;
+import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.push.AccountManagerFactory;
 import org.thoughtcrime.securesms.qr.ScanListener;
 import org.thoughtcrime.securesms.util.Base64;
@@ -91,46 +95,57 @@ public class DeviceActivity extends PassphraseRequiredActionBarActivity
 
   @Override
   public void onClick(View v) {
-    getSupportFragmentManager().beginTransaction()
-                               .replace(android.R.id.content, deviceAddFragment)
-                               .addToBackStack(null)
-                               .commit();
+    Permissions.with(this)
+               .request(Manifest.permission.CAMERA)
+               .ifNecessary()
+               .withPermanentDenialDialog(getString(R.string.DeviceActivity_signal_needs_the_camera_permission_in_order_to_scan_a_qr_code))
+               .onAllGranted(() -> {
+                 getSupportFragmentManager().beginTransaction()
+                                            .replace(android.R.id.content, deviceAddFragment)
+                                            .addToBackStack(null)
+                                            .commitAllowingStateLoss();
+               })
+               .onAnyDenied(() -> Toast.makeText(this, R.string.DeviceActivity_unable_to_scan_a_qr_code_without_the_camera_permission, Toast.LENGTH_LONG).show())
+               .execute();
   }
 
   @Override
   public void onQrDataFound(final String data) {
-    Util.runOnMain(new Runnable() {
-      @Override
-      public void run() {
-        ((Vibrator)getSystemService(Context.VIBRATOR_SERVICE)).vibrate(50);
-        Uri uri = Uri.parse(data);
-        deviceLinkFragment.setLinkClickedListener(uri, DeviceActivity.this);
+    Util.runOnMain(() -> {
+      ((Vibrator)getSystemService(Context.VIBRATOR_SERVICE)).vibrate(50);
+      Uri uri = Uri.parse(data);
+      deviceLinkFragment.setLinkClickedListener(uri, DeviceActivity.this);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-          deviceAddFragment.setSharedElementReturnTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(R.transition.fragment_shared));
-          deviceAddFragment.setExitTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(android.R.transition.fade));
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        deviceAddFragment.setSharedElementReturnTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(R.transition.fragment_shared));
+        deviceAddFragment.setExitTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(android.R.transition.fade));
 
-          deviceLinkFragment.setSharedElementEnterTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(R.transition.fragment_shared));
-          deviceLinkFragment.setEnterTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(android.R.transition.fade));
+        deviceLinkFragment.setSharedElementEnterTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(R.transition.fragment_shared));
+        deviceLinkFragment.setEnterTransition(TransitionInflater.from(DeviceActivity.this).inflateTransition(android.R.transition.fade));
 
-          getSupportFragmentManager().beginTransaction()
-                                     .addToBackStack(null)
-                                     .addSharedElement(deviceAddFragment.getDevicesImage(), "devices")
-                                     .replace(android.R.id.content, deviceLinkFragment)
-                                     .commit();
+        getSupportFragmentManager().beginTransaction()
+                                   .addToBackStack(null)
+                                   .addSharedElement(deviceAddFragment.getDevicesImage(), "devices")
+                                   .replace(android.R.id.content, deviceLinkFragment)
+                                   .commit();
 
-        } else {
-          getSupportFragmentManager().beginTransaction()
-                                     .setCustomAnimations(R.anim.slide_from_bottom, R.anim.slide_to_bottom,
-                                                          R.anim.slide_from_bottom, R.anim.slide_to_bottom)
-                                     .replace(android.R.id.content, deviceLinkFragment)
-                                     .addToBackStack(null)
-                                     .commit();
-        }
+      } else {
+        getSupportFragmentManager().beginTransaction()
+                                   .setCustomAnimations(R.anim.slide_from_bottom, R.anim.slide_to_bottom,
+                                                        R.anim.slide_from_bottom, R.anim.slide_to_bottom)
+                                   .replace(android.R.id.content, deviceLinkFragment)
+                                   .addToBackStack(null)
+                                   .commit();
       }
     });
   }
 
+  @Override
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    Permissions.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
+  }
+
+  @SuppressLint("StaticFieldLeak")
   @Override
   public void onLink(final Uri uri) {
     new ProgressDialogAsyncTask<Void, Void, Integer>(this,
@@ -146,6 +161,8 @@ public class DeviceActivity extends PassphraseRequiredActionBarActivity
 
       @Override
       protected Integer doInBackground(Void... params) {
+        boolean isMultiDevice = TextSecurePreferences.isMultiDevice(DeviceActivity.this);
+
         try {
           Context                     context          = DeviceActivity.this;
           SignalServiceAccountManager accountManager   = AccountManagerFactory.createManager(context);
@@ -162,20 +179,25 @@ public class DeviceActivity extends PassphraseRequiredActionBarActivity
           IdentityKeyPair  identityKeyPair   = IdentityKeyUtil.getIdentityKeyPair(context);
           Optional<byte[]> profileKey        = Optional.of(ProfileKeyUtil.getProfileKey(getContext()));
 
+          TextSecurePreferences.setMultiDevice(DeviceActivity.this, true);
           accountManager.addDevice(ephemeralId, publicKey, identityKeyPair, profileKey, verificationCode);
-          TextSecurePreferences.setMultiDevice(context, true);
+
           return SUCCESS;
         } catch (NotFoundException e) {
           Log.w(TAG, e);
+          TextSecurePreferences.setMultiDevice(DeviceActivity.this, isMultiDevice);
           return NO_DEVICE;
         } catch (DeviceLimitExceededException e) {
           Log.w(TAG, e);
+          TextSecurePreferences.setMultiDevice(DeviceActivity.this, isMultiDevice);
           return LIMIT_EXCEEDED;
         } catch (IOException e) {
           Log.w(TAG, e);
+          TextSecurePreferences.setMultiDevice(DeviceActivity.this, isMultiDevice);
           return NETWORK_ERROR;
         } catch (InvalidKeyException e) {
           Log.w(TAG, e);
+          TextSecurePreferences.setMultiDevice(DeviceActivity.this, isMultiDevice);
           return KEY_ERROR;
         }
       }
@@ -210,6 +232,6 @@ public class DeviceActivity extends PassphraseRequiredActionBarActivity
 
         getSupportFragmentManager().popBackStackImmediate();
       }
-    }.execute();
+    }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 }

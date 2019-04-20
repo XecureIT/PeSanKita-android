@@ -42,10 +42,12 @@ public abstract class DisplayRecord {
   private final long       threadId;
   private final Body       body;
   private final int        deliveryStatus;
-  private final int        receiptCount;
+  private final int        deliveryReceiptCount;
+  private final int        readReceiptCount;
 
   public DisplayRecord(Context context, Body body, Recipient recipient, long dateSent,
-                       long dateReceived, long threadId, int deliveryStatus, int receiptCount, long type)
+                       long dateReceived, long threadId, int deliveryStatus, int deliveryReceiptCount,
+                       long type, int readReceiptCount)
   {
     this.context              = context.getApplicationContext();
     this.threadId             = threadId;
@@ -54,7 +56,8 @@ public abstract class DisplayRecord {
     this.dateReceived         = dateReceived;
     this.type                 = type;
     this.body                 = body;
-    this.receiptCount         = receiptCount;
+    this.deliveryReceiptCount = deliveryReceiptCount;
+    this.readReceiptCount     = readReceiptCount;
     this.deliveryStatus       = deliveryStatus;
   }
 
@@ -71,8 +74,8 @@ public abstract class DisplayRecord {
 
   public boolean isPending() {
     return MmsSmsColumns.Types.isPendingMessageType(type) &&
-        !MmsSmsColumns.Types.isIdentityVerified(type)  &&
-        !MmsSmsColumns.Types.isIdentityDefault(type);
+           !MmsSmsColumns.Types.isIdentityVerified(type)  &&
+           !MmsSmsColumns.Types.isIdentityDefault(type);
   }
 
   public boolean isOutgoing() {
@@ -141,17 +144,29 @@ public abstract class DisplayRecord {
     return SmsDatabase.Types.isMissedCall(type);
   }
 
+  public boolean isVerificationStatusChange() {
+    return SmsDatabase.Types.isIdentityDefault(type) || SmsDatabase.Types.isIdentityVerified(type);
+  }
+
   public int getDeliveryStatus() {
     return deliveryStatus;
   }
 
-  public int getReceiptCount() {
-    return receiptCount;
+  public int getDeliveryReceiptCount() {
+    return deliveryReceiptCount;
+  }
+
+  public int getReadReceiptCount() {
+    return readReceiptCount;
   }
 
   public boolean isDelivered() {
     return (deliveryStatus >= SmsDatabase.Status.STATUS_COMPLETE &&
-            deliveryStatus < SmsDatabase.Status.STATUS_PENDING) || receiptCount > 0;
+            deliveryStatus < SmsDatabase.Status.STATUS_PENDING) || deliveryReceiptCount > 0;
+  }
+
+  public boolean isRemoteRead() {
+    return readReceiptCount > 0;
   }
 
   public boolean isPendingInsecureSmsFallback() {

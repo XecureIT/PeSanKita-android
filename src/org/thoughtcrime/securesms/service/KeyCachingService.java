@@ -43,6 +43,7 @@ import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.MasterSecretUtil;
 import org.thoughtcrime.securesms.jobs.MasterSecretDecryptJob;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
+import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 
@@ -81,12 +82,7 @@ public class KeyCachingService extends Service {
   public static synchronized @Nullable MasterSecret getMasterSecret(Context context) {
     if (masterSecret == null && TextSecurePreferences.isPasswordDisabled(context)) {
       try {
-        MasterSecret masterSecret = MasterSecretUtil.getMasterSecret(context, MasterSecretUtil.UNENCRYPTED_PASSPHRASE);
-        Intent       intent       = new Intent(context, KeyCachingService.class);
-
-        context.startService(intent);
-
-        return masterSecret;
+        return MasterSecretUtil.getMasterSecret(context, MasterSecretUtil.UNENCRYPTED_PASSPHRASE);
       } catch (InvalidPassphraseException e) {
         Log.w("KeyCachingService", e);
       }
@@ -115,7 +111,7 @@ public class KeyCachingService extends Service {
           }
           return null;
         }
-      }.execute();
+      }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
   }
 
@@ -204,7 +200,7 @@ public class KeyCachingService extends Service {
         MessageNotifier.updateNotification(KeyCachingService.this, null);
         return null;
       }
-    }.execute();
+    }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private void handleDisableService() {
@@ -235,7 +231,7 @@ public class KeyCachingService extends Service {
   @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
   private void foregroundServiceModern() {
     Log.w("KeyCachingService", "foregrounding KCS");
-    NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationChannels.LOCKED_STATUS);
 
     builder.setContentTitle(getString(R.string.KeyCachingService_passphrase_cached));
     builder.setContentText(getString(R.string.KeyCachingService_signal_passphrase_cached));
@@ -251,7 +247,7 @@ public class KeyCachingService extends Service {
   }
 
   private void foregroundServiceICS() {
-    NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationChannels.LOCKED_STATUS);
     RemoteViews remoteViews            = new RemoteViews(getPackageName(), R.layout.key_caching_notification);
 
     remoteViews.setOnClickPendingIntent(R.id.lock_cache_icon, buildLockIntent());
@@ -265,7 +261,7 @@ public class KeyCachingService extends Service {
   }
 
   private void foregroundServiceLegacy() {
-    NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationChannels.LOCKED_STATUS);
     builder.setSmallIcon(R.drawable.icon_cached);
     builder.setWhen(System.currentTimeMillis());
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2014 Open Whisper Systems
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,6 +18,7 @@
 package org.thoughtcrime.securesms;
 
 import android.app.Activity;
+import android.content.AsyncTaskLoader;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -41,17 +42,16 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
+import com.bumptech.glide.request.transition.Transition;
 import com.soundcloud.android.crop.Crop;
 
 import org.thoughtcrime.securesms.components.PushRecipientsPanel;
 import org.thoughtcrime.securesms.components.PushRecipientsPanel.RecipientsPanelChangedListener;
 import org.thoughtcrime.securesms.contacts.RecipientsEditor;
 import org.thoughtcrime.securesms.contacts.avatars.ContactColors;
-import org.thoughtcrime.securesms.contacts.avatars.ContactPhotoFactory;
+import org.thoughtcrime.securesms.contacts.avatars.ResourceContactPhoto;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
@@ -61,7 +61,7 @@ import org.thoughtcrime.securesms.database.RecipientDatabase;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.groups.GroupManager;
 import org.thoughtcrime.securesms.groups.GroupManager.GroupActionResult;
-import org.thoughtcrime.securesms.mms.RoundedCorners;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.BitmapUtil;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
@@ -186,7 +186,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
   }
 
   private void addSelectedContacts(@NonNull Recipient... recipients) {
-    new AddMembersTask(this).execute(recipients);
+    new AddMembersTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, recipients);
   }
 
   private void addSelectedContacts(@NonNull Collection<Recipient> recipients) {
@@ -211,8 +211,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     recipientsPanel.setPanelChangeListener(this);
     contactsButton.setVisibility(View.GONE);
     contactsButton.setOnClickListener(new AddRecipientButtonListener());
-    avatar.setImageDrawable(ContactPhotoFactory.getDefaultGroupPhoto()
-                                               .asDrawable(this, ContactColors.UNKNOWN_COLOR.toConversationColor(this)));
+    avatar.setImageDrawable(new ResourceContactPhoto(R.drawable.ic_group_white_24dp).asDrawable(this, ContactColors.UNKNOWN_COLOR.toConversationColor(this)));
     avatar.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -226,7 +225,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
     final Address groupAddress = getIntent().getParcelableExtra(GROUP_ADDRESS_EXTRA);
 
     if (groupAddress != null) {
-      new FillExistingGroupInfoAsyncTask(this).execute(groupAddress.toGroupString());
+      new FillExistingGroupInfoAsyncTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, groupAddress.toGroupString());
     } else {
       groupName.setEnabled(true);
       avatar.setEnabled(true);
@@ -287,9 +286,9 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
       return;
     }
     if (isSignalGroup()) {
-      new CreateSignalGroupTask(this, masterSecret, avatarBmp, getGroupName(), getAdapter().getRecipients()).execute();
+      new CreateSignalGroupTask(this, masterSecret, avatarBmp, getGroupName(), getAdapter().getRecipients()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     } else {
-      new CreateMmsGroupTask(this, masterSecret, getAdapter().getRecipients()).execute();
+      new CreateMmsGroupTask(this, masterSecret, getAdapter().getRecipients()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
   }
 
@@ -301,7 +300,7 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
 
     new UpdateSignalGroupTask(this, masterSecret, groupToUpdate.get().id, avatarBmp,
                               getGroupName(), getAdapter().getRecipients(),
-                              getAdapter().getAdminNumbers().get()).execute();
+                              getAdapter().getAdminNumbers().get()).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private void handleOpenConversation(long threadId, Recipient recipient) {
@@ -362,16 +361,19 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
         new Crop(data.getData()).output(outputFile).asSquare().start(this);
         break;
       case Crop.REQUEST_CROP:
-        Glide.with(this).load(Crop.getOutput(data)).asBitmap()
-             .skipMemoryCache(true)
-             .diskCacheStrategy(DiskCacheStrategy.NONE)
-             .centerCrop().override(AVATAR_SIZE, AVATAR_SIZE)
-             .into(new SimpleTarget<Bitmap>() {
-               @Override
-               public void onResourceReady(Bitmap resource, GlideAnimation<? super Bitmap> glideAnimation) {
-                 setAvatar(Crop.getOutput(data), resource);
-               }
-             });
+        GlideApp.with(this)
+                .asBitmap()
+                .load(Crop.getOutput(data))
+                .skipMemoryCache(true)
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .centerCrop()
+                .override(AVATAR_SIZE, AVATAR_SIZE)
+                .into(new SimpleTarget<Bitmap>() {
+                  @Override
+                  public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
+                    setAvatar(Crop.getOutput(data), resource);
+                  }
+                });
     }
   }
 
@@ -753,12 +755,12 @@ public class GroupCreateActivity extends PassphraseRequiredActionBarActivity
 
   private <T> void setAvatar(T model, Bitmap bitmap) {
     avatarBmp = bitmap;
-    Glide.with(this)
-         .load(model)
-         .skipMemoryCache(true)
-         .diskCacheStrategy(DiskCacheStrategy.NONE)
-         .transform(new RoundedCorners(this, avatar.getWidth() / 2))
-         .into(avatar);
+    GlideApp.with(this)
+            .load(model)
+            .circleCrop()
+            .skipMemoryCache(true)
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .into(avatar);
   }
 
   private static class GroupData {

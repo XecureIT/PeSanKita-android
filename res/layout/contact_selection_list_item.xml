@@ -14,7 +14,7 @@
         android:paddingRight="24dp"
         android:paddingEnd="24dp">
 
-<org.thoughtcrime.securesms.components.AvatarImageView
+    <org.thoughtcrime.securesms.components.AvatarImageView
             android:id="@+id/contact_photo_image"
             android:layout_width="40dp"
             android:layout_height="40dp"

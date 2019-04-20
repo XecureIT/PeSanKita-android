@@ -11,6 +11,7 @@
         <item name="colorAccent">@color/textsecure_primary_dark</item>
         <item name="alertDialogTheme">@style/AppCompatAlertDialogStyleLight</item>
         <item name="android:alertDialogTheme">@style/AppCompatDialogStyleLight</item>
+        <item name="android:windowBackground">@color/gray5</item>
 
         <item name="recipient_preference_blocked">#d00000</item>
         <item name="contact_selection_label_text">#66000000</item>
@@ -18,6 +19,14 @@
         <item name="contact_selection_lay_user">#a0000000</item>
         <item name="contact_selection_header_text">@color/textsecure_primary_dark</item>
         <item name="dialog_background_color">@color/background_material_light</item>
+        <item name="pref_divider">@drawable/preference_divider_light</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Fix</item>
+
+        <item name="media_overview_toolbar_background">@color/white</item>
+        <item name="media_overview_toolbar_foreground">@color/gray70</item>
+        <item name="media_overview_header_foreground">@color/gray50</item>
+        <item name="media_overview_document_foreground">@color/gray70</item>
+        <item name="media_overview_document_background">@color/white</item>
     </style>
 
     <style name="TextSecure.DarkNoActionBar" parent="@style/Theme.AppCompat.NoActionBar">
@@ -25,8 +34,12 @@
         <item name="actionBarStyle">@style/TextSecure.DarkActionBar</item>
         <item name="actionBarTabBarStyle">@style/TextSecure.DarkActionBar.TabBar</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Dark</item>
+        <item name="colorPrimary">@color/gray95</item>
+        <item name="colorAccent">@color/signal_primary_dark</item>
+        <item name="android:colorControlActivated">@color/signal_primary_dark</item>
         <item name="alertDialogTheme">@style/AppCompatAlertDialogStyleDark</item>
         <item name="android:alertDialogTheme">@style/AppCompatDialogStyleDark</item>
+        <item name="android:windowBackground">@color/black</item>
 
         <item name="recipient_preference_blocked">#d00000</item>
         <item name="contact_selection_label_text">#66eeeeee</item>
@@ -34,6 +47,14 @@
         <item name="contact_selection_lay_user">#afeeeeee</item>
         <item name="contact_selection_header_text">#66eeeeee</item>
         <item name="dialog_background_color">@color/background_material_dark</item>
+        <item name="pref_divider">@drawable/preference_divider_dark</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Fix</item>
+
+        <item name="media_overview_toolbar_background">@color/black</item>
+        <item name="media_overview_toolbar_foreground">@color/white</item>
+        <item name="media_overview_header_foreground">@color/gray10</item>
+        <item name="media_overview_document_foreground">@color/white</item>
+        <item name="media_overview_document_background">@color/black</item>
     </style>
 
     <style name="TextSecure.HighlightTheme" parent="@style/TextSecure.LightTheme">
@@ -219,6 +240,7 @@
         <item name="app_protect_timeout_picker_color">@style/BetterPickersDialogFragment.Light</item>
 
         <item name="group_members_dialog_icon">@drawable/ic_group_grey600_24dp</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Fix</item>
 
         <item name="application_text">@color/application_text_light</item>
         <item name="application_background">@color/application_background_light</item>
@@ -353,9 +375,15 @@
         <item name="app_protect_timeout_picker_color">@style/BetterPickersDialogFragment</item>
 
         <item name="group_members_dialog_icon">@drawable/ic_group_white_24dp</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.Fix</item>
 
         <item name="application_text">@color/application_text_dark</item>
         <item name="application_background">@color/application_background_dark</item>
         <item name="application_background2">@color/application_background_dark2</item>
     </style>
+
+    <style name="RationaleDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/permission_rationale_dialog_corners</item>
+    </style>
+
 </resources>

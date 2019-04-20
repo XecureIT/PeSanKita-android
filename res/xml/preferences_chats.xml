@@ -2,7 +2,7 @@
 
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <PreferenceCategory android:key="media_download" android:title="@string/preferences_chats__media_auto_download">
-        <com.h6ah4i.android.compat.preference.MultiSelectListPreferenceCompat
+        <MultiSelectListPreference
                 android:title="@string/preferences_chats__when_using_mobile_data"
                 android:key="pref_media_download_mobile"
                 android:defaultValue="@array/pref_media_download_mobile_data_default"
@@ -10,7 +10,7 @@
                 android:entries="@array/pref_media_download_values"
                 android:entryValues="@array/pref_media_download_entries" />
 
-        <com.h6ah4i.android.compat.preference.MultiSelectListPreferenceCompat
+        <MultiSelectListPreference
                 android:title="@string/preferences_chats__when_using_wifi"
                 android:key="pref_media_download_wifi"
                 android:defaultValue="@array/pref_media_download_wifi_default"
@@ -18,7 +18,7 @@
                 android:entries="@array/pref_media_download_values"
                 android:entryValues="@array/pref_media_download_entries" />
 
-        <com.h6ah4i.android.compat.preference.MultiSelectListPreferenceCompat
+        <MultiSelectListPreference
                 android:title="@string/preferences_chats__when_roaming"
                 android:key="pref_media_download_roaming"
                 android:defaultValue="@array/pref_media_download_roaming_default"
@@ -30,13 +30,13 @@
     <PreferenceCategory android:layout="@layout/preference_divider"/>
 
     <PreferenceCategory android:title="@string/preferences_chats__chats">
-        <org.thoughtcrime.securesms.preferences.SignalListPreference
-            android:key="pref_message_body_text_size"
-            android:title="@string/preferences_chats__message_text_size"
-            android:entries="@array/pref_message_font_size_entries"
-            android:entryValues="@array/pref_message_font_size_values"
-            android:defaultValue="16">
-        </org.thoughtcrime.securesms.preferences.SignalListPreference>
+        <org.thoughtcrime.securesms.preferences.widgets.SignalListPreference
+                android:key="pref_message_body_text_size"
+                android:title="@string/preferences_chats__message_text_size"
+                android:entries="@array/pref_message_font_size_entries"
+                android:entryValues="@array/pref_message_font_size_values"
+                android:defaultValue="16">
+        </org.thoughtcrime.securesms.preferences.widgets.SignalListPreference>
 
         <!--org.thoughtcrime.securesms.components.SwitchPreferenceCompat
             android:defaultValue="true"
@@ -45,16 +45,16 @@
             android:summary="@string/preferences_chats__display_invitation_prompts_for_contacts_without_signal" /-->
 
         <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="pref_system_emoji"
-            android:title="@string/preferences_advanced__use_system_emoji"
-            android:summary="@string/preferences_advanced__disable_signal_built_in_emoji_support" />
+                android:defaultValue="false"
+                android:key="pref_system_emoji"
+                android:title="@string/preferences_advanced__use_system_emoji"
+                android:summary="@string/preferences_advanced__disable_signal_built_in_emoji_support" />
 
         <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="pref_enter_sends"
-            android:summary="@string/preferences__pressing_the_enter_key_will_send_text_messages"
-            android:title="@string/preferences__pref_enter_sends_title"/>
+                android:defaultValue="false"
+                android:key="pref_enter_sends"
+                android:summary="@string/preferences__pressing_the_enter_key_will_send_text_messages"
+                android:title="@string/preferences__pref_enter_sends_title"/>
     </PreferenceCategory>
 
     <PreferenceCategory android:layout="@layout/preference_divider"/>
@@ -77,4 +77,23 @@
                     android:summary="@string/preferences__scan_through_all_conversations_and_enforce_conversation_length_limits"
                     android:dependency="pref_trim_threads" />
     </PreferenceCategory>
+
+    <PreferenceCategory android:layout="@layout/preference_divider"/>
+
+    <PreferenceCategory android:key="media_trimming" android:title="@string/preferences_chats__auto_remove_saved_media">
+        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
+            android:defaultValue="false"
+            android:key="pref_auto_remove"
+            android:title="@string/preferences__auto_remove_saved_media"
+            android:summary="@string/preferences__auto_remove_saved_media_desc"/>
+
+        <Preference android:title="@string/preferences__auto_remove_saved_media_interval"
+                    android:key="pref_auto_remove_timeout_interval"
+                    android:dependency="pref_auto_remove"/>
+
+        <Preference android:title="@string/preferences__saved_media_age"
+            android:key="pref_saved_media_age"
+            android:dependency="pref_auto_remove"/>
+    </PreferenceCategory>
+
 </PreferenceScreen>

@@ -3,14 +3,17 @@ package org.thoughtcrime.securesms.jobs;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.NoExternalStorageException;
 import org.thoughtcrime.securesms.util.StorageUtil;
+import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.whispersystems.jobqueue.JobParameters;
 import org.whispersystems.jobqueue.requirements.NetworkRequirement;
 
 import java.io.File;
+import java.util.concurrent.TimeUnit;
 
 public class AutoRemoveJob extends ContextJob {
 
@@ -39,9 +42,10 @@ public class AutoRemoveJob extends ContextJob {
   @Override
   public void onRun() {
     try {
-      File directory = StorageUtil.getBackupDir();
-      walkAndRemove(directory);
-
+      walkAndRemove(StorageUtil.getAudioDir());
+      walkAndRemove(StorageUtil.getDownloadDir());
+      walkAndRemove(StorageUtil.getImageDir());
+      walkAndRemove(StorageUtil.getVideoDir());
     } catch (NoExternalStorageException e) {
       e.printStackTrace();
     }
@@ -63,7 +67,12 @@ public class AutoRemoveJob extends ContextJob {
         if (files[i].isDirectory()) {
           walkAndRemove(files[i]);
         } else {
-          files[i].getAbsoluteFile().delete();
+          File file = files[i].getAbsoluteFile();
+          long age  = TimeUnit.MINUTES.toMillis(TextSecurePreferences.getSavedMediaAge(context));
+
+          if ( System.currentTimeMillis() - file.lastModified() >= age && file.canWrite()) {
+            file.delete();
+          }
         }
       }
     }

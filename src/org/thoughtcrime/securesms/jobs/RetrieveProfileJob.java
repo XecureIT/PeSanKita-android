@@ -113,8 +113,8 @@ public class RetrieveProfileJob extends ContextJob implements InjectableType {
       IdentityKey identityKey = new IdentityKey(Base64.decode(identityKeyValue), 0);
 
       if (!DatabaseFactory.getIdentityDatabase(context)
-          .getIdentity(recipient.getAddress())
-          .isPresent())
+                          .getIdentity(recipient.getAddress())
+                          .isPresent())
       {
         Log.w(TAG, "Still first use...");
         return;
@@ -151,8 +151,8 @@ public class RetrieveProfileJob extends ContextJob implements InjectableType {
 
     if (!Util.equals(profileAvatar, recipient.getProfileAvatar())) {
       ApplicationContext.getInstance(context)
-          .getJobManager()
-          .add(new RetrieveProfileAvatarJob(context, recipient, profileAvatar));
+                        .getJobManager()
+                        .add(new RetrieveProfileAvatarJob(context, recipient, profileAvatar));
     }
   }
 }

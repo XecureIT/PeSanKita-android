@@ -38,14 +38,10 @@ import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.util.Util;
 import org.whispersystems.libsignal.util.guava.Optional;
-import org.whispersystems.signalservice.api.push.ContactTokenDetails;
-import org.whispersystems.signalservice.api.util.InvalidNumberException;
-import org.whispersystems.signalservice.api.util.PhoneNumberFormatter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -79,13 +75,12 @@ public class ContactsDatabase {
     this.context  = context;
   }
 
-  public synchronized @NonNull List<Address> setRegisteredUsers(@NonNull Account account,
+  public synchronized void setRegisteredUsers(@NonNull Account account,
                                                                 @NonNull List<Address> registeredAddressList,
                                                                 boolean remove)
       throws RemoteException, OperationApplicationException
   {
     Set<Address>                        registeredAddressSet = new HashSet<>();
-    List<Address>                       addedAddresses       = new LinkedList<>();
     ArrayList<ContentProviderOperation> operations           = new ArrayList<>();
     Map<Address, SignalContact>         currentContacts      = getSignalRawContacts(account);
 
@@ -97,7 +92,6 @@ public class ContactsDatabase {
 
         if (systemContactInfo.isPresent()) {
           Log.w(TAG, "Adding number: " + registeredAddress);
-          addedAddresses.add(registeredAddress);
           addTextSecureRawContact(operations, account, systemContactInfo.get().number,
                                   systemContactInfo.get().name, systemContactInfo.get().id,
                                   false);
@@ -125,8 +119,6 @@ public class ContactsDatabase {
     if (!operations.isEmpty()) {
       context.getContentResolver().applyBatch(ContactsContract.AUTHORITY, operations);
     }
-
-    return addedAddresses;
   }
 
   @NonNull Cursor querySystemContacts(@Nullable String filter) {
@@ -247,6 +239,7 @@ public class ContactsDatabase {
                                              .withValue(ContactsContract.CommonDataKinds.StructuredName.RAW_CONTACT_ID, rawContactId)
                                              .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, displayName)
                                              .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                                             .withYieldAllowed(true)
                                              .build());
     } else {
       operations.add(ContentProviderOperation.newUpdate(dataUri)
@@ -254,6 +247,7 @@ public class ContactsDatabase {
                                                             new String[] {String.valueOf(rawContactId), ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE})
                                              .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, displayName)
                                              .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                                             .withYieldAllowed(true)
                                              .build());
     }
   }

@@ -22,6 +22,7 @@ import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.SmsMigrator;
 import org.thoughtcrime.securesms.database.SmsMigrator.ProgressDescription;
+import org.thoughtcrime.securesms.notifications.NotificationChannels;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.Executor;
@@ -32,8 +33,8 @@ public class ApplicationMigrationService extends Service
     implements SmsMigrator.SmsMigrationProgressListener
 {
   private static final String TAG               = ApplicationMigrationService.class.getSimpleName();
-  public  static final String MIGRATE_DATABASE  = "org.thoughtcrime.securesms.ApplicationMigration.MIGRATE_DATABSE";
-  public  static final String COMPLETED_ACTION  = "org.thoughtcrime.securesms.ApplicationMigrationService.COMPLETED";
+  public  static final String MIGRATE_DATABASE  = "id.kita.pesan.secure.ApplicationMigration.MIGRATE_DATABSE";
+  public  static final String COMPLETED_ACTION  = "id.kita.pesan.secure.ApplicationMigrationService.COMPLETED";
   private static final String PREFERENCES_NAME  = "SecureSMS";
   private static final String DATABASE_MIGRATED = "migrated";
 
@@ -126,7 +127,7 @@ public class ApplicationMigrationService extends Service
   }
 
   private NotificationCompat.Builder initializeBackgroundNotification() {
-    NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+    NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationChannels.OTHER);
 
     builder.setSmallIcon(R.drawable.icon_notification);
     builder.setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.icon_notification));
@@ -186,7 +187,7 @@ public class ApplicationMigrationService extends Service
   private static class CompletedReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-      NotificationCompat.Builder builder = new NotificationCompat.Builder(context);
+      NotificationCompat.Builder builder = new NotificationCompat.Builder(context, NotificationChannels.OTHER);
       builder.setSmallIcon(R.drawable.icon_notification);
       builder.setContentTitle(context.getString(R.string.ApplicationMigrationService_import_complete));
       builder.setContentText(context.getString(R.string.ApplicationMigrationService_system_database_import_is_complete));

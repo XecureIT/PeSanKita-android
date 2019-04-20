@@ -1,6 +1,5 @@
 package org.thoughtcrime.securesms;
 
-import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -83,27 +82,16 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
     swipeRefresh.setEnabled(getActivity().getIntent().getBooleanExtra(REFRESHABLE, true) &&
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN);
 
-    swipeRefresh.setOnRefreshListener(
-        new SwipeRefreshLayout.OnRefreshListener() {
-          @Override
-          public void onRefresh() {
-            new LoadData().execute();
-          }
-        }
-    );
-
-    showMoreAudio.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        viewAll(AllMediaActivity.TYPE_AUDIO_EXTRA);
-      }
+    swipeRefresh.setOnRefreshListener(() -> {
+      new LoadData().execute();
     });
 
-    showMoreFile.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View v) {
-        viewAll(AllMediaActivity.TYPE_FILE_EXTRA);
-      }
+    showMoreAudio.setOnClickListener(v -> {
+      viewAll(AllMediaActivity.TYPE_AUDIO_EXTRA);
+    });
+
+    showMoreFile.setOnClickListener(v -> {
+      viewAll(AllMediaActivity.TYPE_FILE_EXTRA);
     });
 
     return view;
@@ -118,9 +106,7 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
   public void onLoadFinished(Loader<Cursor> loader, Cursor data) {}
 
   @Override
-  public void onLoaderReset(Loader<Cursor> loader) {
-
-  }
+  public void onLoaderReset(Loader<Cursor> loader) {}
 
   @Override
   public void onResume() {
@@ -139,8 +125,7 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
   class LoadData extends  AsyncTask<Void, Void, MediaData> {
     @Override
     protected MediaData doInBackground(Void... voids) {
-      MediaData data = new MediaData(getContext(), masterSecret);
-      return data;
+      return new MediaData(getContext(), masterSecret);
     }
 
     @Override
@@ -184,13 +169,10 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
       recyclerView.setAdapter(adapter);
       adapter.notifyDataSetChanged();
 
-      adapter.setOnItemClickListener(new ThumbnailAdapter.ClickListener() {
-        @Override
-        public void onItemClick(int position, View v) {
-          Intent intent = new Intent(getContext(), MediaOverviewActivity.class);
-          intent.putExtra(MediaOverviewActivity.TYPE_ID_EXTRA, position);
-          startActivity(intent);
-        }
+      adapter.setOnItemClickListener((position, v) -> {
+        Intent intent = new Intent(getContext(), AllMediaOverviewActivity.class);
+        intent.putExtra(AllMediaOverviewActivity.TYPE_ID_EXTRA, position);
+        startActivity(intent);
       });
     }
   }
@@ -222,11 +204,8 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
       recyclerView.setAdapter(adapter);
       adapter.notifyDataSetChanged();
 
-      adapter.setOnItemClickListener(new ListAdapter.ClickListener() {
-        @Override
-        public void onItemClick(int position, View v) {
-          performClick(context, list, position);
-        }
+      adapter.setOnItemClickListener((position, v) -> {
+        performClick(context, list, position);
       });
     }
   }
@@ -247,7 +226,6 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
 
       intent.putExtra(MediaPreviewActivity.DATE_EXTRA, item.getDate());
       intent.putExtra(MediaPreviewActivity.SIZE_EXTRA, item.getSize());
-      intent.putExtra(MediaPreviewActivity.THREAD_ID_EXTRA,0);
 
       context.startActivity(intent);
     } else {
@@ -258,11 +236,7 @@ public class MediaFragment extends Fragment implements LoaderManager.LoaderCallb
 
       try {
         context.startActivity(intent);
-      } catch (ActivityNotFoundException anfe) {
-        Log.w(TAG, "No activity existed to view the media.");
-        Toast.makeText(context, R.string.ConversationItem_unable_to_open_media, Toast.LENGTH_LONG).show();
-      } catch (NullPointerException e) {
-        e.printStackTrace();
+      } catch (Exception e) {
         Toast.makeText(context, R.string.ConversationItem_unable_to_open_media, Toast.LENGTH_LONG).show();
       }
     }

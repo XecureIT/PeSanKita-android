@@ -93,7 +93,7 @@ public class MmsSendJob extends SendJob {
       Log.w(TAG, e);
       database.markAsSentFailed(messageId);
       notifyMediaMessageDeliveryFailed(context, messageId);
-    } catch (InsecureFallbackApprovalException e) {
+    } catch (InsecureFallbackApprovalException | SecurityException e) {
       Log.w(TAG, e);
       database.markAsPendingInsecureSmsFallback(messageId);
       notifyMediaMessageDeliveryFailed(context, messageId);

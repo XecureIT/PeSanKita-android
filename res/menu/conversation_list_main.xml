@@ -31,4 +31,6 @@
         android:visible="false"
         android:id="@+id/menu_help"/>
 
+    <item android:title="@string/ConversationActivity_personal_notes"
+          android:id="@+id/menu_personal_notes" />
 </menu>

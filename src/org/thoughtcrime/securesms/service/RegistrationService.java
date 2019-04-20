@@ -265,20 +265,21 @@ public class RegistrationService extends Service {
   }
 
   private synchronized String waitForChallenge() throws AccountVerificationTimeoutException {
-    this.verificationStartTime = System.currentTimeMillis();
-
-    if (this.challenge == null) {
-      try {
-        wait(REGISTRATION_TIMEOUT_MILLIS);
-      } catch (InterruptedException e) {
-        throw new IllegalArgumentException(e);
-      }
-    }
-
-    if (this.challenge == null)
-      throw new AccountVerificationTimeoutException();
-
-    return this.challenge;
+//    this.verificationStartTime = System.currentTimeMillis();
+//
+//    if (this.challenge == null) {
+//      try {
+//        wait(REGISTRATION_TIMEOUT_MILLIS);
+//      } catch (InterruptedException e) {
+//        throw new IllegalArgumentException(e);
+//      }
+//    }
+//
+//    if (this.challenge == null)
+//      throw new AccountVerificationTimeoutException();
+//
+//    return this.challenge;
+    throw new AccountVerificationTimeoutException();
   }
 
   private synchronized void challengeReceived(String challenge) {

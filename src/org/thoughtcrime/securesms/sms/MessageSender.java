@@ -21,9 +21,11 @@ import android.util.Log;
 import android.util.Pair;
 
 import org.thoughtcrime.securesms.ApplicationContext;
+import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.crypto.MasterSecretUnion;
 import org.thoughtcrime.securesms.database.Address;
+import org.thoughtcrime.securesms.database.AttachmentDatabase;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.EncryptingSmsDatabase;
 import org.thoughtcrime.securesms.database.MmsDatabase;
@@ -182,8 +184,8 @@ public class MessageSender {
 
     database.markAsSent(messageId, true);
 
-    Pair<Long, Long> messageAndThreadId = database.copyMessageInbox(messageId);
-    database.markAsPush(messageAndThreadId.first);
+    //Pair<Long, Long> messageAndThreadId = database.copyMessageInbox(messageId);
+    //database.markAsPush(messageAndThreadId.first);
 
     if (expiresIn > 0) {
       ExpiringMessageManager expiringMessageManager = ApplicationContext.getInstance(context).getExpiringMessageManager();
@@ -201,7 +203,16 @@ public class MessageSender {
     MmsDatabase            database               = DatabaseFactory.getMmsDatabase(context);
 
     database.markAsSent(messageId, true);
-    database.copyMessageInbox(masterSecret, messageId);
+    //database.copyMessageInbox(masterSecret, messageId);
+
+    try {
+      OutgoingMediaMessage message    = database.getOutgoingMessage(masterSecret, messageId);
+      AttachmentDatabase dbAttachment = DatabaseFactory.getAttachmentDatabase(context);
+
+      for (Attachment attachment : message.getAttachments()) {
+        dbAttachment.markAttachmentUploaded(messageId, attachment);
+      }
+    } catch (Exception e) {}
 
     if (expiresIn > 0) {
       database.markExpireStarted(messageId);

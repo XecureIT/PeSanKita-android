@@ -27,15 +27,13 @@ import java.io.IOException;
 
 import javax.inject.Inject;
 
-import static org.thoughtcrime.securesms.dependencies.SignalCommunicationModule.SignalMessageSenderFactory;
-
 public class PushTextSendJob extends PushSendJob implements InjectableType {
 
   private static final long serialVersionUID = 1L;
 
   private static final String TAG = PushTextSendJob.class.getSimpleName();
 
-  @Inject transient SignalMessageSenderFactory messageSenderFactory;
+  @Inject transient SignalServiceMessageSender messageSender;
 
   private final long messageId;
 
@@ -68,7 +66,7 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
       Log.w(TAG, e);
       database.markAsPendingInsecureSmsFallback(record.getId());
       MessageNotifier.notifyMessageDeliveryFailed(context, record.getRecipient(), record.getThreadId());
-      ApplicationContext.getInstance(context).getJobManager().add(new DirectoryRefreshJob(context));
+      ApplicationContext.getInstance(context).getJobManager().add(new DirectoryRefreshJob(context, false));
     } catch (UntrustedIdentityException e) {
       Log.w(TAG, e);
       database.addMismatchedIdentity(record.getId(), Address.fromSerialized(e.getE164Number()), e.getIdentityKey());
@@ -101,7 +99,6 @@ public class PushTextSendJob extends PushSendJob implements InjectableType {
   {
     try {
       SignalServiceAddress       address           = getPushAddress(message.getIndividualRecipient().getAddress());
-      SignalServiceMessageSender messageSender     = messageSenderFactory.create();
       Optional<byte[]>           profileKey        = getProfileKey(message.getIndividualRecipient());
       SignalServiceDataMessage   textSecureMessage = SignalServiceDataMessage.newBuilder()
                                                                              .withTimestamp(message.getDateSent())

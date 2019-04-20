@@ -8,10 +8,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.util.MediaUtil;
 
 import java.io.File;
@@ -57,13 +57,13 @@ public class GridAdapter extends RecyclerView.Adapter<GridAdapter.viewHolder> {
       holder.playIcon.setVisibility(View.GONE);
     }
 
-    Glide.with(context)
-        .load(img)
-        .crossFade()
-        .centerCrop()
-        .diskCacheStrategy(DiskCacheStrategy.NONE)
-        .skipMemoryCache(true)
-        .into(holder.image);
+    GlideApp.with(context)
+            .load(img)
+            //.crossFade()
+            .centerCrop()
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
+            .into(holder.image);
   }
 
   @Override

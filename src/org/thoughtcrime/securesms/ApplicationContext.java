@@ -33,6 +33,7 @@ import org.thoughtcrime.securesms.jobs.GcmRefreshJob;
 import org.thoughtcrime.securesms.jobs.persistence.EncryptingJobSerializer;
 import org.thoughtcrime.securesms.jobs.requirements.MasterSecretRequirementProvider;
 import org.thoughtcrime.securesms.jobs.requirements.ServiceRequirementProvider;
+import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.push.SignalServiceNetworkAccess;
 import org.thoughtcrime.securesms.service.AutoRemoveListener;
 import org.thoughtcrime.securesms.service.DirectoryRefreshListener;
@@ -88,6 +89,7 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
     initializePeriodicTasks();
     initializeCircumvention();
     //initializeWebRtc();
+    NotificationChannels.create(this);
   }
 
   @Override
@@ -202,8 +204,7 @@ public class ApplicationContext extends MultiDexApplication implements Dependenc
       }
     };
 
-    if (Build.VERSION.SDK_INT >= 11) task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-    else                             task.execute();
+    task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
 }

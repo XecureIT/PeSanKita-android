@@ -10,16 +10,12 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.mms.GlideApp;
 
 import java.util.ArrayList;
-
-/**
- * Created by winardiaris on 14/02/18.
- */
 
 public class ApplicationAdapter extends RecyclerView.Adapter<ApplicationAdapter.GridViewHolder> {
   private Context context;
@@ -53,18 +49,18 @@ public class ApplicationAdapter extends RecyclerView.Adapter<ApplicationAdapter.
         context.getPackageName()
     ));
 
-    Glide.with(context)
-        .load(context.getResources()
-            .getIdentifier(
-                getList().get(position).getApplicationIcon(), "drawable",
-                context.getPackageName()
-            ))
-        .override(100,100)
-        .crossFade()
-        .diskCacheStrategy(DiskCacheStrategy.NONE)
-        .skipMemoryCache(true)
-        .placeholder(R.drawable.ic_image_light)
-        .into(holder.applicationIcon);
+    GlideApp.with(context)
+            .load(context.getResources()
+                .getIdentifier(
+                    getList().get(position).getApplicationIcon(), "drawable",
+                    context.getPackageName()
+                ))
+            .override(100,100)
+            //.crossFade()
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
+            .placeholder(R.drawable.ic_image_light)
+            .into(holder.applicationIcon);
 
     holder.applicationContainer.setOnClickListener(
         new ApplicationItemOnClickListener(position,

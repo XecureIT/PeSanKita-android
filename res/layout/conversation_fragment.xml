@@ -55,5 +55,4 @@
             android:src="@drawable/ic_scroll_down"/>
 
     <include layout="@layout/conversation_activity_reply_preview"/>
-
 </FrameLayout>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:background="@drawable/background_pattern_repeat"
             android:fillViewport="true" >
@@ -39,6 +39,7 @@
                         android:contentDescription="@string/registration_progress_activity__alert"/>
 
                 <TextView
+                        android:id="@+id/sms_failed_title"
                         style="@style/Registration.Constant"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -61,6 +62,7 @@
                         android:text="@string/registration_progress_activity__signal_timed_out_while_waiting_for_a_verification_sms_message" />
             </RelativeLayout>
 
+
             <RelativeLayout android:id="@+id/voice_verification_layout"
                             android:layout_width="fill_parent"
                             android:layout_height="wrap_content"
@@ -68,80 +70,80 @@
                             android:background="@drawable/background_pane">
 
                 <ImageView android:id="@+id/telephone"
-                    android:visibility="gone"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingLeft="4dip"
-                    android:paddingRight="4dip"
-                    android:src="@drawable/telephone"
-                    android:contentDescription="@string/registration_progress_activity__telephone"/>
+                           android:visibility="gone"
+                           android:layout_width="wrap_content"
+                           android:layout_height="wrap_content"
+                           android:paddingLeft="4dip"
+                           android:paddingRight="4dip"
+                           android:src="@drawable/telephone"
+                           android:contentDescription="@string/registration_progress_activity__telephone"/>
 
                 <TextView style="@style/Registration.Constant"
-                    android:visibility="gone"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignBottom="@id/telephone"
-                    android:layout_toRightOf="@id/telephone"
-                    android:paddingLeft="4dip"
-                    android:paddingRight="8dip"
-                    android:text="@string/registration_progress_activity__voice_verification"
-                    android:textColor="#333333"
-                    android:textSize="16sp"/>
+                          android:visibility="gone"
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:layout_alignBottom="@id/telephone"
+                          android:layout_toRightOf="@id/telephone"
+                          android:paddingLeft="4dip"
+                          android:paddingRight="8dip"
+                          android:text="@string/registration_progress_activity__voice_verification"
+                          android:textColor="#333333"
+                          android:textSize="16sp"/>
 
                 <TextView android:id="@+id/telephone_text"
-                    android:visibility="gone"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_alignParentLeft="true"
-                    android:layout_below="@id/telephone"
-                    android:paddingLeft="4dip"
-                    android:paddingRight="4dip"
-                    android:paddingBottom="10dip"
-                    android:text="@string/registration_progress_activity__signal_can_also_call_you_to_verify_your_number"/>
+                          android:visibility="gone"
+                          android:layout_width="wrap_content"
+                          android:layout_height="wrap_content"
+                          android:layout_alignParentLeft="true"
+                          android:layout_below="@id/telephone"
+                          android:paddingLeft="4dip"
+                          android:paddingRight="4dip"
+                          android:paddingBottom="10dip"
+                          android:text="@string/registration_progress_activity__signal_can_also_call_you_to_verify_your_number"/>
 
                 <LinearLayout android:id="@+id/code_container"
-                    android:orientation="horizontal"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_centerHorizontal="true"
-                    android:layout_below="@id/telephone_text">
+                              android:orientation="horizontal"
+                              android:layout_width="wrap_content"
+                              android:layout_height="wrap_content"
+                              android:layout_centerHorizontal="true"
+                              android:layout_below="@id/telephone_text">
 
                     <EditText android:id="@+id/telephone_code"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:ems="6"
-                        android:inputType="number"
-                        android:enabled="false"/>
+                              android:layout_width="wrap_content"
+                              android:layout_height="wrap_content"
+                              android:ems="6"
+                              android:inputType="number"
+                              android:enabled="false"/>
 
                     <Button android:id="@+id/verify_button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/registration_progress_activity__verify" />
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/registration_progress_activity__verify" />
 
                 </LinearLayout>
 
                 <Button android:id="@+id/call_button"
-                    android:visibility="gone"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_centerHorizontal="true"
-                    android:layout_below="@id/code_container"
-                    android:paddingLeft="5dip"
-                    android:paddingRight="5dip"
-                    android:layout_marginTop="10dip"
-                    android:text="@string/registration_progress_activity__call_me"/>
+                        android:visibility="gone"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_centerHorizontal="true"
+                        android:layout_below="@id/code_container"
+                        android:paddingLeft="5dip"
+                        android:paddingRight="5dip"
+                        android:layout_marginTop="10dip"
+                        android:text="@string/registration_progress_activity__call_me"/>
 
                 <Button
-                    android:id="@+id/verification_failure_edit_button"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginTop="5dip"
-                    android:layout_marginBottom="10.0dip"
-                    android:gravity="center"
-                    android:text="@string/registration_progress_activity__edit_number"
-                    android:textStyle="bold"
-                    android:layout_below="@id/call_button"/>
+                        android:id="@+id/verification_failure_edit_button"
+                        android:layout_width="fill_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginTop="5dip"
+                        android:layout_marginBottom="10.0dip"
+                        android:gravity="center"
+                        android:text="@string/registration_progress_activity__edit_number"
+                        android:textStyle="bold"
+                        android:layout_below="@id/call_button"/>
             </RelativeLayout>
         </LinearLayout>
 
@@ -216,6 +218,7 @@
                     android:layout_height="wrap_content" >
 
                 <TableRow>
+
                     <TextView
                             style="@style/Registration.Description"
                             android:layout_width="wrap_content"
@@ -245,6 +248,7 @@
                 </TableRow>
 
                 <TableRow>
+
                     <TextView
                             style="@style/Registration.Description"
                             android:layout_width="wrap_content"
@@ -338,6 +342,7 @@
                             android:layout_gravity="center"
                             android:gravity="center" >
 
+
                         <ImageView
                                 android:id="@+id/connecting_complete"
                                 android:layout_width="wrap_content"
@@ -375,6 +380,7 @@
                 </TableRow>
 
                 <TableRow>
+
                     <FrameLayout
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -423,6 +429,7 @@
                             android:layout_height="wrap_content"
                             android:layout_gravity="center"
                             android:gravity="center" >
+
 
                         <ImageView
                                 android:id="@+id/generating_keys_complete"
@@ -562,7 +569,6 @@
                     android:visibility="gone"
                     android:text="@string/registration_progress_activity__edit_number"
                     android:textStyle="bold" />
-
         </LinearLayout>
     </FrameLayout>
 

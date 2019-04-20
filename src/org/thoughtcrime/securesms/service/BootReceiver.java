@@ -3,13 +3,16 @@ package org.thoughtcrime.securesms.service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+
+import org.thoughtcrime.securesms.ApplicationContext;
+import org.thoughtcrime.securesms.jobs.PushNotificationReceiveJob;
 
 public class BootReceiver extends BroadcastReceiver {
 
   @Override
   public void onReceive(Context context, Intent intent) {
-    Intent messageRetrievalService = new Intent(context, MessageRetrievalService.class);
-    context.startService(messageRetrievalService);
+    ApplicationContext.getInstance(context).getJobManager().add(new PushNotificationReceiveJob(context));
   }
 
 }

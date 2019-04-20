@@ -20,6 +20,7 @@ import com.melnykov.fab.FloatingActionButton;
 import com.nineoldandroids.animation.ArgbEvaluator;
 
 import org.thoughtcrime.securesms.IntroPagerAdapter.IntroPage;
+import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.util.ServiceUtil;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
@@ -54,14 +55,21 @@ public class ExperienceUpgradeActivity extends BaseActionBarActivity {
                       R.string.ExperienceUpgradeActivity_signal_now_supports_secure_video_calling_long,
                 null),*/
     PROFILES(286,
-                new IntroPage(0xFF2090EA,
-                              BasicIntroFragment.newInstance(R.drawable.profile_splash,
-                                                             R.string.ExperienceUpgradeActivity_ready_for_your_closeup,
-                                                             R.string.ExperienceUpgradeActivity_now_you_can_share_a_profile_photo_and_name_with_friends_on_signal)),
+                 new IntroPage(0xFF2090EA,
+                               BasicIntroFragment.newInstance(R.drawable.profile_splash,
+                                                              R.string.ExperienceUpgradeActivity_ready_for_your_closeup,
+                                                              R.string.ExperienceUpgradeActivity_now_you_can_share_a_profile_photo_and_name_with_friends_on_signal)),
              R.string.ExperienceUpgradeActivity_signal_profiles_are_here,
              R.string.ExperienceUpgradeActivity_now_you_can_share_a_profile_photo_and_name_with_friends_on_signal,
              R.string.ExperienceUpgradeActivity_now_you_can_share_a_profile_photo_and_name_with_friends_on_signal,
-             CreateProfileActivity.class);
+             CreateProfileActivity.class),
+    READ_RECEIPTS(299,
+                  new IntroPage(0xFF2090EA,
+                                ReadReceiptsIntroFragment.newInstance()),
+                  R.string.experience_upgrade_preference_fragment__read_receipts_are_here,
+                  R.string.experience_upgrade_preference_fragment__optionally_see_and_share_when_messages_have_been_read,
+                  R.string.experience_upgrade_preference_fragment__optionally_see_and_share_when_messages_have_been_read,
+                  null);
 
     private            int             version;
     private            List<IntroPage> pages;
@@ -232,7 +240,7 @@ public class ExperienceUpgradeActivity extends BaseActionBarActivity {
         Intent dismissIntent = new Intent(context, AppUpgradeReceiver.class);
         dismissIntent.setAction(DISMISS_ACTION);
 
-        Notification notification = new NotificationCompat.Builder(context)
+        Notification notification = new NotificationCompat.Builder(context, NotificationChannels.OTHER)
                                         .setSmallIcon(R.drawable.icon_notification)
                                         .setColor(context.getResources().getColor(R.color.signal_primary))
                                         .setContentTitle(context.getString(experienceUpgrade.get().getNotificationTitle()))

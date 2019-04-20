@@ -6,14 +6,14 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.CheckBoxPreference;
-import android.preference.Preference;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.preference.PreferenceFragment;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.preference.CheckBoxPreference;
+import android.support.v7.preference.Preference;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -35,7 +35,7 @@ import org.whispersystems.signalservice.api.push.exceptions.AuthorizationFailedE
 
 import java.io.IOException;
 
-public class AdvancedPreferenceFragment extends PreferenceFragment {
+public class AdvancedPreferenceFragment extends CorrectedPreferenceFragment {
   private static final String TAG = AdvancedPreferenceFragment.class.getSimpleName();
 
   private static final String PUSH_MESSAGING_PREF   = "pref_toggle_push_messaging";
@@ -50,7 +50,6 @@ public class AdvancedPreferenceFragment extends PreferenceFragment {
   public void onCreate(Bundle paramBundle) {
     super.onCreate(paramBundle);
     masterSecret = getArguments().getParcelable("master_secret");
-    addPreferencesFromResource(R.xml.preferences_advanced);
 
     initializeIdentitySelection();
 
@@ -61,6 +60,11 @@ public class AdvancedPreferenceFragment extends PreferenceFragment {
 
     Preference appVersion = this.findPreference(APP_VERSION_PREF);
     appVersion.setSummary(getVersion(getActivity()));
+  }
+
+  @Override
+  public void onCreatePreferences(@Nullable Bundle savedInstanceState, String rootKey) {
+    addPreferencesFromResource(R.xml.preferences_advanced);
   }
 
   @Override
@@ -220,7 +224,7 @@ public class AdvancedPreferenceFragment extends PreferenceFragment {
         builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
           @Override
           public void onClick(DialogInterface dialog, int which) {
-            new DisablePushMessagesTask((CheckBoxPreference)preference).execute();
+            new DisablePushMessagesTask((CheckBoxPreference)preference).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
           }
         });
         builder.show();

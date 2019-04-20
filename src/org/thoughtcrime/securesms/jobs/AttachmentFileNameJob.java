@@ -33,8 +33,8 @@ public class AttachmentFileNameJob extends MasterSecretJob {
                                @NonNull DatabaseAttachment attachment, @NonNull IncomingMediaMessage message)
   {
     super(context, new JobParameters.Builder().withPersistence()
-        .withRequirement(new MasterSecretRequirement(context))
-        .create());
+                                              .withRequirement(new MasterSecretRequirement(context))
+                                              .create());
 
     this.attachmentRowId    = attachment.getAttachmentId().getRowId();
     this.attachmentUniqueId = attachment.getAttachmentId().getUniqueId();

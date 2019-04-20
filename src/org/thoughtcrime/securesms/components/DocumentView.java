@@ -71,7 +71,7 @@ public class DocumentView extends FrameLayout {
     if (attrs != null) {
       TypedArray typedArray = context.getTheme().obtainStyledAttributes(attrs, R.styleable.DocumentView, 0, 0);
       setTint(typedArray.getColor(R.styleable.DocumentView_documentForegroundTintColor, Color.WHITE),
-          typedArray.getColor(R.styleable.DocumentView_documentBackgroundTintColor, Color.WHITE));
+              typedArray.getColor(R.styleable.DocumentView_documentBackgroundTintColor, Color.WHITE));
       container.setBackgroundColor(typedArray.getColor(R.styleable.DocumentView_documentWidgetBackground, Color.TRANSPARENT));
       typedArray.recycle();
     }

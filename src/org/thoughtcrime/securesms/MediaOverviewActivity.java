@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (C) 2015 Open Whisper Systems
  *
  * This program is free software: you can redistribute it and/or modify
@@ -16,204 +16,86 @@
  */
 package org.thoughtcrime.securesms;
 
-import android.annotation.TargetApi;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.res.Configuration;
 import android.database.Cursor;
-import android.os.Build.VERSION;
-import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.TabLayout;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
-import android.support.v7.widget.GridLayoutManager;
+import android.support.v4.view.ViewPager;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuInflater;
+import android.support.v7.widget.Toolbar;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.WindowManager;
+import android.view.ViewGroup;
 import android.widget.TextView;
+
+import com.codewaves.stickyheadergrid.StickyHeaderGridLayoutManager;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.CursorRecyclerViewAdapter;
-import org.thoughtcrime.securesms.database.DatabaseFactory;
-import org.thoughtcrime.securesms.database.MediaDatabase.MediaRecord;
+import org.thoughtcrime.securesms.database.loaders.BucketedThreadMediaLoader;
+import org.thoughtcrime.securesms.database.loaders.BucketedThreadMediaLoader.BucketedThreadMedia;
+import org.thoughtcrime.securesms.database.loaders.ThreadMediaLoader;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.recipients.Recipient;
-import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
-import org.thoughtcrime.securesms.util.AbstractCursorLoader;
 import org.thoughtcrime.securesms.util.DynamicLanguage;
-import org.thoughtcrime.securesms.util.SaveAttachmentTask;
-import org.thoughtcrime.securesms.util.task.ProgressDialogAsyncTask;
+import org.thoughtcrime.securesms.util.DynamicNoActionBarTheme;
+import org.thoughtcrime.securesms.util.DynamicTheme;
+import org.thoughtcrime.securesms.util.StickyHeaderDecoration;
+import org.thoughtcrime.securesms.util.Util;
+import org.thoughtcrime.securesms.util.ViewUtil;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Locale;
 
 /**
  * Activity for displaying media attachments in-app
  */
-public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity implements LoaderManager.LoaderCallbacks<Cursor> {
+public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity  {
   private final static String TAG = MediaOverviewActivity.class.getSimpleName();
 
   public static final String ADDRESS_EXTRA   = "address";
-  public static final String THREAD_ID_EXTRA = "thread_id";
-  public static final String TYPE_ID_EXTRA = "type_id";
 
+  private final DynamicTheme    dynamicTheme    = new DynamicNoActionBarTheme();
   private final DynamicLanguage dynamicLanguage = new DynamicLanguage();
 
+  private Toolbar      toolbar;
+  private TabLayout    tabLayout;
+  private ViewPager    viewPager;
   private MasterSecret masterSecret;
-
-  private RecyclerView      gridView;
-  private GridLayoutManager gridManager;
-  private TextView          noImages;
-  private Recipient         recipient;
-  private long              threadId;
-  public static int         typeId;
+  private Recipient    recipient;
 
   @Override
   protected void onPreCreate() {
-    this.setTheme(R.style.TextSecure_DarkTheme);
+    dynamicTheme.onCreate(this);
     dynamicLanguage.onCreate(this);
   }
 
   @Override
   protected void onCreate(Bundle bundle, @NonNull MasterSecret masterSecret) {
-    this.masterSecret = masterSecret;
-    setFullscreenIfPossible();
-
-    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     setContentView(R.layout.media_overview_activity);
+    this.masterSecret = masterSecret;
 
     initializeResources();
-    initializeActionBar();
-    getSupportLoaderManager().initLoader(0, null, MediaOverviewActivity.this);
-  }
+    initializeToolbar();
 
-  @Override
-  public void onConfigurationChanged(Configuration newConfig) {
-    super.onConfigurationChanged(newConfig);
-    if (gridManager != null) gridManager.setSpanCount(getResources().getInteger(R.integer.media_overview_cols));
-  }
-
-  @TargetApi(VERSION_CODES.JELLY_BEAN)
-  private void setFullscreenIfPossible() {
-    getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                         WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-    if (VERSION.SDK_INT >= VERSION_CODES.JELLY_BEAN) {
-      getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_FULLSCREEN);
-    }
+    this.tabLayout.setupWithViewPager(viewPager);
+    this.viewPager.setAdapter(new MediaOverviewPagerAdapter(getSupportFragmentManager()));
   }
 
   @Override
   public void onResume() {
     super.onResume();
+    dynamicTheme.onResume(this);
     dynamicLanguage.onResume(this);
-  }
-
-  private void initializeActionBar() {
-    getSupportActionBar().setTitle(recipient == null
-                                   ? getString(R.string.AndroidManifest__all_media)
-                                   : getString(R.string.AndroidManifest__all_media_named, recipient.toShortString()));
-  }
-
-  @Override
-  public void onPause() {
-    super.onPause();
-  }
-
-  private void initializeResources() {
-    threadId = getIntent().getLongExtra(THREAD_ID_EXTRA, -1);
-    typeId   = getIntent().getIntExtra(TYPE_ID_EXTRA, -1);
-
-    noImages = (TextView    ) findViewById(R.id.no_images );
-    gridView = (RecyclerView) findViewById(R.id.media_grid);
-    gridManager = new GridLayoutManager(this, getResources().getInteger(R.integer.media_overview_cols));
-    gridView.setLayoutManager(gridManager);
-    gridView.setHasFixedSize(true);
-
-    Address address = getIntent().getParcelableExtra(ADDRESS_EXTRA);
-
-    if (address != null) {
-      recipient = Recipient.from(this, address, true);
-    } else if (threadId > -1) {
-      recipient = DatabaseFactory.getThreadDatabase(this).getRecipientForThreadId(threadId);
-    } else {
-      recipient = null;
-    }
-
-    if (recipient != null) {
-      recipient.addListener(new RecipientModifiedListener() {
-        @Override
-        public void onModified(Recipient recipient) {
-          initializeActionBar();
-        }
-      });
-    }
-  }
-
-  private void saveToDisk() {
-    final Context c = this;
-
-    SaveAttachmentTask.showWarningDialog(this, new DialogInterface.OnClickListener() {
-      @Override
-      public void onClick(DialogInterface dialogInterface, int i) {
-        new ProgressDialogAsyncTask<Void, Void, List<SaveAttachmentTask.Attachment>>(c,
-                                                                                     R.string.ConversationFragment_collecting_attahments,
-                                                                                     R.string.please_wait) {
-          @Override
-          protected List<SaveAttachmentTask.Attachment> doInBackground(Void... params) {
-            Cursor cursor;
-            if (typeId > -1) {
-              String type = null;
-              if (typeId == 0)
-                type = "image";
-              else if (typeId == 1)
-                type = "video";
-              cursor = DatabaseFactory.getMediaDatabase(c).getMediaByMimeType(type);
-            } else {
-              cursor = DatabaseFactory.getMediaDatabase(c).getMediaForThread(threadId);
-            }
-
-            List<SaveAttachmentTask.Attachment> attachments = new ArrayList<>(cursor.getCount());
-
-            while (cursor != null && cursor.moveToNext()) {
-              MediaRecord record = MediaRecord.from(c, masterSecret, cursor);
-              attachments.add(new SaveAttachmentTask.Attachment(record.getAttachment().getDataUri(),
-                                                                record.getContentType(),
-                                                                record.getDate(),
-                                                                null));
-            }
-
-            return attachments;
-          }
-
-          @Override
-          protected void onPostExecute(List<SaveAttachmentTask.Attachment> attachments) {
-            super.onPostExecute(attachments);
-
-            SaveAttachmentTask saveTask = new SaveAttachmentTask(c, masterSecret, gridView, attachments.size());
-            saveTask.execute(attachments.toArray(new SaveAttachmentTask.Attachment[attachments.size()]));
-          }
-        }.execute();
-      }
-    }, gridView.getAdapter().getItemCount());
-  }
-
-  @Override
-  public boolean onPrepareOptionsMenu(Menu menu) {
-    super.onPrepareOptionsMenu(menu);
-
-    menu.clear();
-    if (gridView.getAdapter() != null && gridView.getAdapter().getItemCount() > 0) {
-      MenuInflater inflater = this.getMenuInflater();
-      inflater.inflate(R.menu.media_overview, menu);
-    }
-
-    return true;
   }
 
   @Override
@@ -221,54 +103,181 @@ public class MediaOverviewActivity extends PassphraseRequiredActionBarActivity i
     super.onOptionsItemSelected(item);
 
     switch (item.getItemId()) {
-    case R.id.save:         saveToDisk(); return true;
-    case android.R.id.home: finish();     return true;
+      case android.R.id.home: finish(); return true;
     }
 
     return false;
   }
 
-  @Override
-  public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-    return new ThreadMediaLoader(this, threadId, typeId);
+  private void initializeResources() {
+    Address address = getIntent().getParcelableExtra(ADDRESS_EXTRA);
+
+    this.viewPager = ViewUtil.findById(this, R.id.pager);
+    this.toolbar   = ViewUtil.findById(this, R.id.toolbar);
+    this.tabLayout = ViewUtil.findById(this, R.id.tab_layout);
+    this.recipient = Recipient.from(this, address, true);
   }
 
-  @Override
-  public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-    Log.w(TAG, "onLoadFinished()");
-    gridView.setAdapter(new MediaAdapter(this, masterSecret, cursor, threadId));
-    noImages.setVisibility(gridView.getAdapter().getItemCount() > 0 ? View.GONE : View.VISIBLE);
-    invalidateOptionsMenu();
+  private void initializeToolbar() {
+    setSupportActionBar(this.toolbar);
+    getSupportActionBar().setTitle(Util.isOwnNumber(this, recipient.getAddress()) ? getString(R.string.AndroidManifest__all_media) : recipient.toShortString());
+    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+    this.recipient.addListener(recipient -> getSupportActionBar().setTitle(recipient.toShortString()));
   }
 
-  @Override
-  public void onLoaderReset(Loader<Cursor> cursorLoader) {
-    ((CursorRecyclerViewAdapter)gridView.getAdapter()).changeCursor(null);
-  }
+  private class MediaOverviewPagerAdapter extends FragmentStatePagerAdapter {
 
-  public static class ThreadMediaLoader extends AbstractCursorLoader {
-    private final long threadId;
-    private final int typeId;
-
-    public ThreadMediaLoader(Context context, long threadId, int typeId) {
-      super(context);
-      this.threadId = threadId;
-      this.typeId = typeId;
+    MediaOverviewPagerAdapter(FragmentManager fragmentManager) {
+      super(fragmentManager);
     }
 
     @Override
-    public Cursor getCursor() {
-      if (typeId > -1) {
-        String type = null;
-        if (typeId == 0)
-          type = "image";
-        else if (typeId == 1)
-          type = "video";
+    public Fragment getItem(int position) {
+      Fragment fragment;
 
-        return DatabaseFactory.getMediaDatabase(getContext()).getMediaByMimeType(type);
-      } else {
-        return DatabaseFactory.getMediaDatabase(getContext()).getMediaForThread(threadId);
-      }
+      if      (position == 0) fragment = new MediaOverviewGalleryFragment();
+      else if (position == 1) fragment = new MediaOverviewDocumentsFragment();
+      else                    throw new AssertionError();
+
+      Bundle args = new Bundle();
+      args.putString(MediaOverviewGalleryFragment.ADDRESS_EXTRA, recipient.getAddress().serialize());
+      args.putParcelable(MediaOverviewGalleryFragment.MASTER_SECRET_EXTRA, masterSecret);
+      args.putSerializable(MediaOverviewGalleryFragment.LOCALE_EXTRA, dynamicLanguage.getCurrentLocale());
+
+      fragment.setArguments(args);
+
+      return fragment;
+    }
+
+    @Override
+    public int getCount() {
+      return 2;
+    }
+
+    @Override
+    public CharSequence getPageTitle(int position) {
+      if      (position == 0) return getString(R.string.MediaOverviewActivity_Media);
+      else if (position == 1) return getString(R.string.MediaOverviewActivity_Documents);
+      else                    throw new AssertionError();
     }
   }
+
+  public static abstract class MediaOverviewFragment<T> extends Fragment implements LoaderManager.LoaderCallbacks<T> {
+
+    public static final String ADDRESS_EXTRA       = "address";
+    public static final String MASTER_SECRET_EXTRA = "master_secret";
+    public static final String LOCALE_EXTRA        = "locale_extra";
+
+    protected TextView     noMedia;
+    protected Recipient    recipient;
+    protected MasterSecret masterSecret;
+    protected RecyclerView recyclerView;
+    protected Locale       locale;
+
+    @Override
+    public void onCreate(Bundle bundle) {
+      super.onCreate(bundle);
+
+      String       address      = getArguments().getString(ADDRESS_EXTRA);
+      MasterSecret masterSecret = getArguments().getParcelable(MASTER_SECRET_EXTRA);
+      Locale       locale       = (Locale)getArguments().getSerializable(LOCALE_EXTRA);
+
+      if (address == null)      throw new AssertionError();
+      if (masterSecret == null) throw new AssertionError();
+      if (locale == null)       throw new AssertionError();
+
+      this.recipient    = Recipient.from(getContext(), Address.fromSerialized(address), true);
+      this.masterSecret = masterSecret;
+      this.locale       = locale;
+
+      getLoaderManager().initLoader(0, null, this);
+    }
+  }
+
+  public static class MediaOverviewGalleryFragment extends MediaOverviewFragment<BucketedThreadMedia> {
+
+    private StickyHeaderGridLayoutManager gridManager;
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+      View view = inflater.inflate(R.layout.media_overview_gallery_fragment, container, false);
+
+      this.recyclerView = ViewUtil.findById(view, R.id.media_grid);
+      this.noMedia      = ViewUtil.findById(view, R.id.no_images);
+      this.gridManager  = new StickyHeaderGridLayoutManager(getResources().getInteger(R.integer.media_overview_cols));
+
+      this.recyclerView.setAdapter(new MediaGalleryAdapter(getContext(), masterSecret, GlideApp.with(this), new BucketedThreadMedia(getContext()), locale, recipient.getAddress()));
+      this.recyclerView.setLayoutManager(gridManager);
+      this.recyclerView.setHasFixedSize(true);
+
+      return view;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+      super.onConfigurationChanged(newConfig);
+      if (gridManager != null) {
+        this.gridManager = new StickyHeaderGridLayoutManager(getResources().getInteger(R.integer.media_overview_cols));
+        this.recyclerView.setLayoutManager(gridManager);
+      }
+    }
+
+    @Override
+    public Loader<BucketedThreadMedia> onCreateLoader(int i, Bundle bundle) {
+      return new BucketedThreadMediaLoader(getContext(), masterSecret, recipient.getAddress());
+    }
+
+    @Override
+    public void onLoadFinished(Loader<BucketedThreadMedia> loader, BucketedThreadMedia bucketedThreadMedia) {
+      ((MediaGalleryAdapter) recyclerView.getAdapter()).setMedia(bucketedThreadMedia);
+      ((MediaGalleryAdapter) recyclerView.getAdapter()).notifyAllSectionsDataSetChanged();
+
+      noMedia.setVisibility(recyclerView.getAdapter().getItemCount() > 0 ? View.GONE : View.VISIBLE);
+      getActivity().invalidateOptionsMenu();
+    }
+
+    @Override
+    public void onLoaderReset(Loader<BucketedThreadMedia> cursorLoader) {
+      ((MediaGalleryAdapter) recyclerView.getAdapter()).setMedia(new BucketedThreadMedia(getContext()));
+    }
+  }
+
+  public static class MediaOverviewDocumentsFragment extends MediaOverviewFragment<Cursor> {
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+      View                  view    = inflater.inflate(R.layout.media_overview_documents_fragment, container, false);
+      MediaDocumentsAdapter adapter = new MediaDocumentsAdapter(getContext(), masterSecret, null, locale);
+
+      this.recyclerView  = ViewUtil.findById(view, R.id.recycler_view);
+      this.noMedia       = ViewUtil.findById(view, R.id.no_documents);
+
+      this.recyclerView.setAdapter(adapter);
+      this.recyclerView.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false));
+      this.recyclerView.addItemDecoration(new StickyHeaderDecoration(adapter, false, true));
+      this.recyclerView.addItemDecoration(new DividerItemDecoration(getContext(), DividerItemDecoration.VERTICAL));
+
+      return view;
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+      return new ThreadMediaLoader(getContext(), masterSecret, recipient.getAddress(), false, -1);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+      ((CursorRecyclerViewAdapter)this.recyclerView.getAdapter()).changeCursor(data);
+      getActivity().invalidateOptionsMenu();
+
+      this.noMedia.setVisibility(data.getCount() > 0 ? View.GONE : View.VISIBLE);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+      ((CursorRecyclerViewAdapter)this.recyclerView.getAdapter()).changeCursor(null);
+      getActivity().invalidateOptionsMenu();
+    }
+  }
+
 }

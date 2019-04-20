@@ -10,12 +10,12 @@ import org.thoughtcrime.securesms.jobs.AttachmentDownloadJob;
 import org.thoughtcrime.securesms.jobs.AvatarDownloadJob;
 import org.thoughtcrime.securesms.jobs.CleanPreKeysJob;
 import org.thoughtcrime.securesms.jobs.CreateSignedPreKeyJob;
-import org.thoughtcrime.securesms.jobs.DeliveryReceiptJob;
 import org.thoughtcrime.securesms.jobs.GcmRefreshJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceBlockedUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceContactUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceGroupUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceProfileKeyUpdateJob;
+import org.thoughtcrime.securesms.jobs.MultiDeviceReadReceiptUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceReadUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceVerifiedUpdateJob;
 import org.thoughtcrime.securesms.jobs.PushGroupSendJob;
@@ -29,6 +29,7 @@ import org.thoughtcrime.securesms.jobs.RequestGroupInfoJob;
 import org.thoughtcrime.securesms.jobs.RetrieveProfileAvatarJob;
 import org.thoughtcrime.securesms.jobs.RetrieveProfileJob;
 import org.thoughtcrime.securesms.jobs.RotateSignedPreKeyJob;
+import org.thoughtcrime.securesms.jobs.SendReadReceiptJob;
 import org.thoughtcrime.securesms.push.SecurityEventListener;
 import org.thoughtcrime.securesms.push.SignalServiceNetworkAccess;
 import org.thoughtcrime.securesms.service.MessageRetrievalService;
@@ -45,7 +46,6 @@ import dagger.Provides;
 
 @Module(complete = false, injects = {CleanPreKeysJob.class,
                                      CreateSignedPreKeyJob.class,
-                                     DeliveryReceiptJob.class,
                                      PushGroupSendJob.class,
                                      PushTextSendJob.class,
                                      PushMediaSendJob.class,
@@ -69,48 +69,59 @@ import dagger.Provides;
                                      MultiDeviceVerifiedUpdateJob.class,
                                      CreateProfileActivity.class,
                                      RetrieveProfileAvatarJob.class,
-                                     MultiDeviceProfileKeyUpdateJob.class})
+                                     MultiDeviceProfileKeyUpdateJob.class,
+                                     SendReadReceiptJob.class,
+                                     MultiDeviceReadReceiptUpdateJob.class})
 public class SignalCommunicationModule {
 
-  private final Context                    context;
-  private final SignalServiceNetworkAccess networkAccess;
+  private final Context                      context;
+  private final SignalServiceNetworkAccess   networkAccess;
+
+  private SignalServiceAccountManager  accountManager;
+  private SignalServiceMessageSender   messageSender;
+  private SignalServiceMessageReceiver messageReceiver;
 
   public SignalCommunicationModule(Context context, SignalServiceNetworkAccess networkAccess) {
     this.context       = context;
     this.networkAccess = networkAccess;
   }
 
-  @Provides SignalServiceAccountManager provideSignalAccountManager() {
-    return new SignalServiceAccountManager(networkAccess.getConfiguration(context),
-                                           TextSecurePreferences.getLocalNumber(context),
-                                           TextSecurePreferences.getPushServerPassword(context),
-                                           BuildConfig.USER_AGENT);
+  @Provides
+  synchronized SignalServiceAccountManager provideSignalAccountManager() {
+    if (this.accountManager == null) {
+      this.accountManager = new SignalServiceAccountManager(networkAccess.getConfiguration(context),
+                                                            new DynamicCredentialsProvider(context),
+                                                            BuildConfig.USER_AGENT);
+    }
+
+    return this.accountManager;
   }
 
   @Provides
-  SignalMessageSenderFactory provideSignalMessageSenderFactory() {
-    return new SignalMessageSenderFactory() {
-      @Override
-      public SignalServiceMessageSender create() {
-        return new SignalServiceMessageSender(networkAccess.getConfiguration(context),
-                                              TextSecurePreferences.getLocalNumber(context),
-                                              TextSecurePreferences.getPushServerPassword(context),
-                                              new SignalProtocolStoreImpl(context),
-                                              BuildConfig.USER_AGENT,
-                                              Optional.fromNullable(MessageRetrievalService.getPipe()),
-                                              Optional.<SignalServiceMessageSender.EventListener>of(new SecurityEventListener(context)));
-      }
-    };
+  synchronized SignalServiceMessageSender provideSignalMessageSender() {
+    if (this.messageSender == null) {
+      this.messageSender = new SignalServiceMessageSender(networkAccess.getConfiguration(context),
+                                                          new DynamicCredentialsProvider(context),
+                                                          new SignalProtocolStoreImpl(context),
+                                                          BuildConfig.USER_AGENT,
+                                                          Optional.fromNullable(MessageRetrievalService.getPipe()),
+                                                          Optional.of(new SecurityEventListener(context)));
+    } else {
+      this.messageSender.setMessagePipe(MessageRetrievalService.getPipe());
+    }
+
+    return this.messageSender;
   }
 
-  @Provides SignalServiceMessageReceiver provideSignalMessageReceiver() {
-    return new SignalServiceMessageReceiver(networkAccess.getConfiguration(context),
-                                            new DynamicCredentialsProvider(context),
-                                            BuildConfig.USER_AGENT);
-  }
+  @Provides
+  synchronized SignalServiceMessageReceiver provideSignalMessageReceiver() {
+    if (this.messageReceiver == null) {
+      this.messageReceiver = new SignalServiceMessageReceiver(networkAccess.getConfiguration(context),
+                                                              new DynamicCredentialsProvider(context),
+                                                              BuildConfig.USER_AGENT);
+    }
 
-  public static interface SignalMessageSenderFactory {
-    public SignalServiceMessageSender create();
+    return this.messageReceiver;
   }
 
   private static class DynamicCredentialsProvider implements CredentialsProvider {

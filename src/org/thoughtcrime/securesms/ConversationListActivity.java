@@ -18,10 +18,8 @@ package org.thoughtcrime.securesms;
 
 import android.content.Context;
 import android.content.Intent;
-import android.database.ContentObserver;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.MenuItemCompat;
@@ -37,6 +35,8 @@ import android.view.MenuItem;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
+import org.thoughtcrime.securesms.database.MessagingDatabase.MarkedMessageInfo;
+import org.thoughtcrime.securesms.notifications.MarkReadReceiver;
 import org.thoughtcrime.securesms.database.ThreadDatabase;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
 import org.thoughtcrime.securesms.recipients.Recipient;
@@ -49,6 +49,7 @@ import org.thoughtcrime.securesms.util.ViewUtil;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.util.List;
 
 public class ConversationListActivity extends PassphraseRequiredActionBarActivity implements
         ConversationListFragment.ConversationSelectedListener,
@@ -57,6 +58,7 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
         ViewPager.OnPageChangeListener
 {
 
+  @SuppressWarnings("unused")
   private static final String TAG = ConversationListActivity.class.getSimpleName();
 
   private final DynamicTheme    dynamicTheme    = new DynamicTheme   ();
@@ -66,7 +68,6 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
   private ContactSelectionListFragment contactsFragment;
   private MediaFragment mediaFragment;
 
-  private ContentObserver observer;
   private MasterSecret masterSecret;
 
   private ViewPager viewPager;
@@ -99,8 +100,6 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
 
     viewPager.addOnPageChangeListener(this);
     setupViewPager(viewPager);
-
-    initializeContactUpdatesReceiver();
   }
 
   @Override
@@ -112,7 +111,6 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
 
   @Override
   public void onDestroy() {
-    if (observer != null) getContentResolver().unregisterContentObserver(observer);
     super.onDestroy();
   }
 
@@ -215,6 +213,7 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
       case R.id.menu_clear_passphrase:  handleClearPassphrase(); return true;
       case R.id.menu_mark_all_read:     handleMarkAllRead();     return true;
       case R.id.menu_invite:            handleInviteFriend();    return true;
+      case R.id.menu_personal_notes:    handlePersonalNotes();    return true;
     }
 
     return false;
@@ -263,11 +262,15 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
     new AsyncTask<Void, Void, Void>() {
       @Override
       protected Void doInBackground(Void... params) {
-        DatabaseFactory.getThreadDatabase(ConversationListActivity.this).setAllThreadsRead();
-        MessageNotifier.updateNotification(ConversationListActivity.this, masterSecret);
+        Context                 context    = ConversationListActivity.this;
+        List<MarkedMessageInfo> messageIds = DatabaseFactory.getThreadDatabase(context).setAllThreadsRead();
+
+        MessageNotifier.updateNotification(context, masterSecret);
+        MarkReadReceiver.process(context, messageIds);
+
         return null;
       }
-    }.execute();
+    }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
   }
 
   private void handleManualRefresh() {
@@ -280,29 +283,14 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
     startActivity(intent);
   }
 
+  private void handlePersonalNotes() {
+    String number = TextSecurePreferences.getLocalNumber(this);
+    this.onContactSelected(number);
+  }
+
   private void handleInviteFriend(){
     Intent intent = new Intent(this, InviteActivity.class);
     startActivity(intent);
-  }
-
-  private void initializeContactUpdatesReceiver() {
-    observer = new ContentObserver(null) {
-      @Override
-      public void onChange(boolean selfChange) {
-        super.onChange(selfChange);
-        Log.w(TAG, "Detected android contact data changed, refreshing cache");
-        Recipient.clearCache(ConversationListActivity.this);
-        ConversationListActivity.this.runOnUiThread(new Runnable() {
-          @Override
-          public void run() {
-            chatsFragment.getListAdapter().notifyDataSetChanged();
-          }
-        });
-      }
-    };
-
-    getContentResolver().registerContentObserver(ContactsContract.Contacts.CONTENT_URI,
-                                                 true, observer);
   }
 
   @Override
@@ -356,7 +344,7 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
     protected Void doInBackground(Context... params) {
 
       try {
-        DirectoryHelper.refreshDirectory(params[0], masterSecret);
+        DirectoryHelper.refreshDirectory(params[0], masterSecret, true);
       } catch (IOException e) {
         Log.w(TAG, e);
       }

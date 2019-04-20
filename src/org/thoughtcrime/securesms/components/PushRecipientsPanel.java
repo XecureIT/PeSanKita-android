@@ -95,6 +95,7 @@ public class PushRecipientsPanel extends RelativeLayout implements RecipientModi
   }
 
   private void initRecipientsEditor() {
+
     this.recipientsText = (RecipientsEditor)findViewById(R.id.recipients_text);
 
     List<Recipient> recipients = getRecipients();

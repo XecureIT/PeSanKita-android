@@ -8,10 +8,10 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.util.MediaUtil;
 import org.thoughtcrime.securesms.util.Util;
 
@@ -60,14 +60,14 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.viewHolder> {
       img = R.drawable.ic_unknown_filetype;
     }
 
-    Glide.with(context)
-        .load(img)
-        .crossFade()
-        .centerCrop()
-        .diskCacheStrategy(DiskCacheStrategy.NONE)
-        .skipMemoryCache(true)
-        .placeholder(R.drawable.ic_unknown_filetype)
-        .into(holder.image);
+    GlideApp.with(context)
+            .load(img)
+            //.crossFade()
+            .centerCrop()
+            .diskCacheStrategy(DiskCacheStrategy.NONE)
+            .skipMemoryCache(true)
+            .placeholder(R.drawable.ic_unknown_filetype)
+            .into(holder.image);
   }
 
   @Override

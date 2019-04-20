@@ -5,11 +5,15 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.annimon.stream.Stream;
+
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.crypto.MasterSecret;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
+import org.thoughtcrime.securesms.database.GroupReceiptDatabase;
+import org.thoughtcrime.securesms.database.GroupReceiptDatabase.GroupReceiptInfo;
 import org.thoughtcrime.securesms.database.MmsDatabase;
 import org.thoughtcrime.securesms.database.NoSuchMessageException;
 import org.thoughtcrime.securesms.database.documents.NetworkFailure;
@@ -43,15 +47,13 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import static org.thoughtcrime.securesms.dependencies.SignalCommunicationModule.SignalMessageSenderFactory;
-
 public class PushGroupSendJob extends PushSendJob implements InjectableType {
 
   private static final long serialVersionUID = 1L;
 
   private static final String TAG = PushGroupSendJob.class.getSimpleName();
 
-  @Inject transient SignalMessageSenderFactory messageSenderFactory;
+  @Inject transient SignalServiceMessageSender messageSender;
 
   private final long      messageId;
   private final long      filterRecipientId; // Deprecated
@@ -135,14 +137,14 @@ public class PushGroupSendJob extends PushSendJob implements InjectableType {
     DatabaseFactory.getMmsDatabase(context).markAsSentFailed(messageId);
   }
 
-  private void deliver(MasterSecret masterSecret, OutgoingMediaMessage message, @Nullable Address filterAddress, List<Recipient> recipients)
+  private void deliver(MasterSecret masterSecret, OutgoingMediaMessage message, @Nullable Address filterAddress, List<Recipient> pRecipients)
       throws IOException, RecipientFormattingException, InvalidNumberException,
       EncapsulatedExceptions, UndeliverableMessageException
   {
-    SignalServiceMessageSender    messageSender     = messageSenderFactory.create();
     String                        groupId           = message.getRecipient().getAddress().toGroupString();
     Optional<byte[]>              profileKey        = getProfileKey(message.getRecipient());
-    if (recipients == null)       recipients        = DatabaseFactory.getGroupDatabase(context).getGroupMembers(groupId, false);
+    List<Address>                 recipients        = getGroupMessageRecipients(groupId, messageId);
+    if (pRecipients != null)      recipients        = Stream.of(pRecipients).map(Recipient::getAddress).toList(); // inspect sending message in Group
     MediaConstraints              mediaConstraints  = MediaConstraints.getPushMediaConstraints();
     List<Attachment>              scaledAttachments = scaleAttachments(masterSecret, mediaConstraints, message.getAttachments());
     List<SignalServiceAttachment> attachmentStreams = getAttachmentsFor(masterSecret, scaledAttachments);
@@ -188,14 +190,16 @@ public class PushGroupSendJob extends PushSendJob implements InjectableType {
     return addresses;
   }
 
-  private List<SignalServiceAddress> getPushAddresses(List<Recipient> recipients) {
-    List<SignalServiceAddress> addresses = new LinkedList<>();
+  private List<SignalServiceAddress> getPushAddresses(List<Address> addresses) {
+    return Stream.of(addresses).map(this::getPushAddress).toList();
+  }
 
-    for (Recipient recipient : recipients) {
-      addresses.add(getPushAddress(recipient.getAddress()));
-    }
+  private @NonNull List<Address> getGroupMessageRecipients(String groupId, long messageId) {
+    List<GroupReceiptInfo> destinations = DatabaseFactory.getGroupReceiptDatabase(context).getGroupReceiptInfo(messageId);
+    if (!destinations.isEmpty()) return Stream.of(destinations).map(GroupReceiptInfo::getAddress).toList();
 
-    return addresses;
+    List<Recipient> members = DatabaseFactory.getGroupDatabase(context).getGroupMembers(groupId, false);
+    return Stream.of(members).map(Recipient::getAddress).toList();
   }
 
 }

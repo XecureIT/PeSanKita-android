@@ -1,6 +1,7 @@
 package org.thoughtcrime.securesms.service;
 
 
+import android.Manifest;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -29,9 +30,9 @@ import org.thoughtcrime.securesms.contacts.ContactAccessor;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.dependencies.InjectableType;
-import org.thoughtcrime.securesms.dependencies.SignalCommunicationModule.SignalMessageSenderFactory;
 import org.thoughtcrime.securesms.events.WebRtcViewModel;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
+import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.FutureTaskListener;
 import org.thoughtcrime.securesms.util.ListenableFutureTask;
@@ -148,10 +149,9 @@ public class WebRtcCallService extends Service implements InjectableType, PeerCo
   private boolean   remoteVideoEnabled = false;
   private boolean   bluetoothAvailable = false;
 
-  @Inject public SignalMessageSenderFactory  messageSenderFactory;
+  @Inject public SignalServiceMessageSender  messageSender;
   @Inject public SignalServiceAccountManager accountManager;
 
-  private SignalServiceMessageSender messageSender;
   private PeerConnectionFactory      peerConnectionFactory;
   private SignalAudioManager         audioManager;
   private BluetoothStateManager      bluetoothStateManager;
@@ -271,7 +271,6 @@ public class WebRtcCallService extends Service implements InjectableType, PeerCo
     this.peerConnectionFactory = new PeerConnectionFactory(new PeerConnectionFactoryOptions());
     this.audioManager          = new SignalAudioManager(this);
     this.bluetoothStateManager = new BluetoothStateManager(this, this);
-    this.messageSender         = messageSenderFactory.create();
     this.messageSender.setSoTimeoutMillis(TimeUnit.SECONDS.toMillis(10));
     this.accountManager.setSoTimeoutMillis(TimeUnit.SECONDS.toMillis(10));
   }
@@ -343,8 +342,13 @@ public class WebRtcCallService extends Service implements InjectableType, PeerCo
       @Override
       public void onSuccessContinue(List<PeerConnection.IceServer> result) {
         try {
-          boolean isSystemContact = ContactAccessor.getInstance().isSystemContact(WebRtcCallService.this, recipient.getAddress().serialize());
-          boolean isAlwaysTurn    = TextSecurePreferences.isTurnOnly(WebRtcCallService.this);
+          boolean isSystemContact = false;
+
+          if (Permissions.hasAny(WebRtcCallService.this, Manifest.permission.READ_CONTACTS, Manifest.permission.WRITE_CONTACTS)) {
+            isSystemContact = ContactAccessor.getInstance().isSystemContact(WebRtcCallService.this, recipient.getAddress().serialize());
+          }
+
+          boolean isAlwaysTurn = TextSecurePreferences.isTurnOnly(WebRtcCallService.this);
 
           WebRtcCallService.this.peerConnection = new PeerConnectionWrapper(WebRtcCallService.this, peerConnectionFactory, WebRtcCallService.this, localRenderer, result, !isSystemContact || isAlwaysTurn);
           WebRtcCallService.this.peerConnection.setRemoteDescription(new SessionDescription(SessionDescription.Type.OFFER, offer));
@@ -1026,7 +1030,6 @@ public class WebRtcCallService extends Service implements InjectableType, PeerCo
       videoTrack.setEnabled(true);
       videoTrack.addRenderer(new VideoRenderer(remoteRenderer));
     }
-
   }
 
   //@Override

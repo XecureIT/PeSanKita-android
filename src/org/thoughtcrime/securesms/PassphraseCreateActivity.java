@@ -47,10 +47,7 @@ public class PassphraseCreateActivity extends PassphraseActivity {
   }
 
   private void initializeResources() {
-    getSupportActionBar().setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
-    getSupportActionBar().setCustomView(R.layout.centered_app_title);
-
-    new SecretGenerator().execute(MasterSecretUtil.UNENCRYPTED_PASSPHRASE);
+    new SecretGenerator().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, MasterSecretUtil.UNENCRYPTED_PASSPHRASE);
   }
 
   private class SecretGenerator extends AsyncTask<String, Void, Void> {
@@ -71,6 +68,7 @@ public class PassphraseCreateActivity extends PassphraseActivity {
       VersionTracker.updateLastSeenVersion(PassphraseCreateActivity.this);
       TextSecurePreferences.setLastExperienceVersionCode(PassphraseCreateActivity.this, Util.getCurrentApkReleaseVersion(PassphraseCreateActivity.this));
       TextSecurePreferences.setPasswordDisabled(PassphraseCreateActivity.this, true);
+      TextSecurePreferences.setReadReceiptsEnabled(PassphraseCreateActivity.this, true);
 
       return null;
     }

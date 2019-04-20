@@ -67,7 +67,8 @@ public class TextSecureSessionStore implements SessionStore {
         if (versionMarker < PLAINTEXT_VERSION && masterSecret != null) {
           serialized = new MasterCipher(masterSecret).decryptBytes(serialized);
         } else if (versionMarker < PLAINTEXT_VERSION) {
-          throw new AssertionError("Session didn't get migrated: (" + versionMarker + "," + address + ")");
+          Log.w(TAG, "Session didn't get migrated: (" + versionMarker + "," + address + ")");
+          return new SessionRecord();
         }
 
         if (versionMarker == SINGLE_STATE_VERSION) {
@@ -77,7 +78,8 @@ public class TextSecureSessionStore implements SessionStore {
         } else if (versionMarker >= ARCHIVE_STATES_VERSION) {
           return new SessionRecord(serialized);
         } else {
-          throw new AssertionError("Unknown version: " + versionMarker);
+          Log.w(TAG, "Unknown version: " + versionMarker);
+          return new SessionRecord();
         }
       } catch (InvalidMessageException | IOException e) {
         Log.w(TAG, "No existing session information found.");

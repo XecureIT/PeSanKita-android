@@ -10,7 +10,9 @@ import java.io.File;
 public class StorageUtil
 {
   private static File getSignalStorageDir() throws NoExternalStorageException {
-    final File storage = Environment.getExternalStorageDirectory();
+    final File storage = new File(Environment.getExternalStorageDirectory().getAbsoluteFile() + File.separator + "PeSankita");
+
+    if (!storage.exists()) storage.mkdirs();
 
     if (!storage.canWrite()) {
       throw new NoExternalStorageException();

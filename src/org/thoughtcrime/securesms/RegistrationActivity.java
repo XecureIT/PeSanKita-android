@@ -1,5 +1,7 @@
 package org.thoughtcrime.securesms;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -9,6 +11,7 @@ import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.text.Editable;
@@ -30,6 +33,7 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 
 import org.thoughtcrime.securesms.crypto.MasterSecret;
+import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.util.Dialogs;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Util;
@@ -77,6 +81,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
 
     initializeResources();
     initializeSpinner();
+    initializePermissions();
     initializeNumber();
   }
 
@@ -87,6 +92,11 @@ public class RegistrationActivity extends BaseActionBarActivity {
       setCountryDisplay(data.getStringExtra("country_name"));
       setCountryFormatter(data.getIntExtra("country_code", 1));
     }
+  }
+
+  @Override
+  public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
+    Permissions.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
   }
 
   private void initializeResources() {
@@ -101,14 +111,14 @@ public class RegistrationActivity extends BaseActionBarActivity {
     this.informationToggleText = (TextView) findViewById(R.id.information_label);
 
     this.createButton.getBackground().setColorFilter(ContextCompat.getColor(this, R.color.signal_primary),
-        PorterDuff.Mode.MULTIPLY);
+                                                     PorterDuff.Mode.MULTIPLY);
     this.skipButton.getBackground().setColorFilter(ContextCompat.getColor(this, R.color.grey_400),
-        PorterDuff.Mode.MULTIPLY);
+                                                   PorterDuff.Mode.MULTIPLY);
 
     this.countryCode.addTextChangedListener(new CountryCodeChangedListener());
     this.number.addTextChangedListener(new NumberChangedListener());
-    this.createButton.setOnClickListener(new CreateButtonListener());
     this.skipButton.setOnClickListener(new CancelButtonListener());
+    this.createButton.setOnClickListener(v -> handleRegisterWithPermissions());
     this.informationToggle.setOnClickListener(new InformationToggleListener());
 
     if (getIntent().getBooleanExtra("cancel_button", false)) {
@@ -163,8 +173,13 @@ public class RegistrationActivity extends BaseActionBarActivity {
     });
   }
 
+  @SuppressLint("MissingPermission")
   private void initializeNumber() {
-    Optional<Phonenumber.PhoneNumber> localNumber = Util.getDeviceNumber(this);
+    Optional<Phonenumber.PhoneNumber> localNumber = Optional.absent();
+
+    if (Permissions.hasAll(this, Manifest.permission.READ_PHONE_STATE)) {
+      localNumber = Util.getDeviceNumber(this);
+    }
 
     if (localNumber.isPresent()) {
       this.countryCode.setText(String.valueOf(localNumber.get().getCountryCode()));
@@ -176,6 +191,23 @@ public class RegistrationActivity extends BaseActionBarActivity {
         this.countryCode.setText(PhoneNumberUtil.getInstance().getCountryCodeForRegion(simCountryIso.get())+"");
       }
     }
+  }
+
+  @SuppressLint("InlinedApi")
+  private void initializePermissions() {
+    Permissions.with(RegistrationActivity.this)
+               .request(Manifest.permission.WRITE_CONTACTS, Manifest.permission.READ_CONTACTS,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_PHONE_STATE)
+               .ifNecessary()
+               .withRationaleDialog(getString(R.string.RegistrationActivity_signal_needs_access_to_your_contacts_and_media_in_order_to_connect_with_friends),
+                                    R.drawable.ic_contacts_white_48dp, R.drawable.ic_folder_white_48dp)
+               .onSomeGranted(permissions -> {
+                 if (permissions.contains(Manifest.permission.READ_PHONE_STATE)) {
+                   initializeNumber();
+                 }
+               })
+               .execute();
   }
 
   private void setCountryDisplay(String value) {
@@ -196,20 +228,33 @@ public class RegistrationActivity extends BaseActionBarActivity {
                                            number.getText().toString());
   }
 
-  private class CreateButtonListener implements View.OnClickListener {
-    @Override
-    public void onClick(View v) {
-      final RegistrationActivity self = RegistrationActivity.this;
+  private void handleRegister() {
+    if (TextUtils.isEmpty(countryCode.getText())) {
+      Toast.makeText(this, getString(R.string.RegistrationActivity_you_must_specify_your_country_code), Toast.LENGTH_LONG).show();
+      return;
+    }
 
-      if (TextUtils.isEmpty(countryCode.getText())) {
-        Toast.makeText(self,
-                       getString(R.string.RegistrationActivity_you_must_specify_your_country_code),
-                       Toast.LENGTH_LONG).show();
-        return;
-      }
+    if (TextUtils.isEmpty(number.getText())) {
+      Toast.makeText(this, getString(R.string.RegistrationActivity_you_must_specify_your_phone_number), Toast.LENGTH_LONG).show();
+      return;
+    }
+
+//    Permissions.with(this)
+//               .request(Manifest.permission.RECEIVE_SMS, Manifest.permission.READ_SMS)
+//               .ifNecessary()
+//               .withRationaleDialog(getString(R.string.RegistrationActivity_to_easily_verify_your_phone_number_signal_can_automatically_detect_your_verification_code), R.drawable.ic_textsms_white_48dp)
+//               .onAllGranted(this::handleRegisterWithPermissions)
+//               .execute();
+  }
+
+  private void handleRegisterWithPermissions() {
+    if (TextUtils.isEmpty(countryCode.getText())) {
+      Toast.makeText(this, getString(R.string.RegistrationActivity_you_must_specify_your_country_code), Toast.LENGTH_LONG).show();
+      return;
+    }
 
       if (TextUtils.isEmpty(number.getText())) {
-        Toast.makeText(self,
+        Toast.makeText(this,
                        getString(R.string.RegistrationActivity_you_must_specify_your_phone_number),
                        Toast.LENGTH_LONG).show();
         return;
@@ -218,24 +263,24 @@ public class RegistrationActivity extends BaseActionBarActivity {
       final String e164number = getConfiguredE164Number();
 
       if (!PhoneNumberFormatter.isValidNumber(e164number)) {
-        Dialogs.showAlertDialog(self,
+        Dialogs.showAlertDialog(this,
                              getString(R.string.RegistrationActivity_invalid_number),
                              String.format(getString(R.string.RegistrationActivity_the_number_you_specified_s_is_invalid),
                                            e164number));
         return;
       }
 
-      PlayServicesStatus gcmStatus = checkPlayServices(self);
+      PlayServicesStatus gcmStatus = checkPlayServices(this);
 
       if (gcmStatus == PlayServicesStatus.SUCCESS) {
-        promptForRegistrationStart(self, e164number, true);
+        promptForRegistrationStart(this, e164number, true);
       } else if (gcmStatus == PlayServicesStatus.MISSING) {
-        promptForNoPlayServices(self, e164number);
+        promptForNoPlayServices(this, e164number);
       } else if (gcmStatus == PlayServicesStatus.NEEDS_UPDATE) {
-        GoogleApiAvailability.getInstance().getErrorDialog(self, ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED, 0).show();
+        GoogleApiAvailability.getInstance().getErrorDialog(this, ConnectionResult.SERVICE_VERSION_UPDATE_REQUIRED, 0).show();
       } else {
-        Dialogs.showAlertDialog(self, getString(R.string.RegistrationActivity_play_services_error),
-                getString(R.string.RegistrationActivity_google_play_services_is_updating_or_unavailable));
+        Dialogs.showAlertDialog(this, getString(R.string.RegistrationActivity_play_services_error),
+                                getString(R.string.RegistrationActivity_google_play_services_is_updating_or_unavailable));
       }
     }
 
@@ -310,7 +355,6 @@ public class RegistrationActivity extends BaseActionBarActivity {
           return PlayServicesStatus.TRANSIENT_ERROR;
       }
     }
-  }
 
   private class CountryCodeChangedListener implements TextWatcher {
     @Override

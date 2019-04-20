@@ -139,7 +139,7 @@ public class VideoPlayer extends FrameLayout {
   }
 
   private void setVideoViewSource(@NonNull MasterSecret masterSecret, @NonNull VideoSlide videoSource)
-      throws IOException
+    throws IOException
   {
     if (this.attachmentServer != null) {
       this.attachmentServer.stop();

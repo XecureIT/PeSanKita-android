@@ -30,17 +30,18 @@ import android.text.style.ForegroundColorSpan;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.components.RecyclerViewFastScroller.FastScrollAdapter;
 import org.thoughtcrime.securesms.database.Address;
-import org.thoughtcrime.securesms.util.StickyHeaderDecoration.StickyHeaderAdapter;
 import org.thoughtcrime.securesms.contacts.ContactSelectionListAdapter.HeaderViewHolder;
 import org.thoughtcrime.securesms.contacts.ContactSelectionListAdapter.ViewHolder;
+import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.CursorRecyclerViewAdapter;
+import org.thoughtcrime.securesms.mms.GlideRequests;
+import org.thoughtcrime.securesms.util.StickyHeaderDecoration.StickyHeaderAdapter;
 import org.thoughtcrime.securesms.util.Util;
 
 import java.util.HashMap;
@@ -65,6 +66,7 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
   private final LayoutInflater    li;
   private final TypedArray        drawables;
   private final ItemClickListener clickListener;
+  private final GlideRequests     glideRequests;
   private final List<String>      numbers;
 
   private final HashMap<Long, String> selectedContacts = new HashMap<>();
@@ -74,11 +76,8 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
                       @Nullable final ItemClickListener clickListener)
     {
       super(itemView);
-      itemView.setOnClickListener(new OnClickListener() {
-        @Override
-        public void onClick(View v) {
-          if (clickListener != null) clickListener.onItemClick(getView());
-        }
+      itemView.setOnClickListener(v -> {
+        if (clickListener != null) clickListener.onItemClick(getView());
       });
     }
 
@@ -94,15 +93,17 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
   }
 
   public ContactSelectionListAdapter(@NonNull  Context context,
+                                     @NonNull  GlideRequests glideRequests,
                                      @Nullable Cursor cursor,
                                      @Nullable ItemClickListener clickListener,
                                      boolean multiSelect,
                                      List<String> numbers)
   {
     super(context, cursor);
-    this.li           = LayoutInflater.from(context);
-    this.drawables    = context.obtainStyledAttributes(STYLE_ATTRIBUTES);
-    this.multiSelect  = multiSelect;
+    this.li            = LayoutInflater.from(context);
+    this.glideRequests = glideRequests;
+    this.drawables     = context.obtainStyledAttributes(STYLE_ATTRIBUTES);
+    this.multiSelect   = multiSelect;
     this.clickListener = clickListener;
     this.numbers = numbers;
   }
@@ -135,8 +136,8 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
 
     boolean preSelected = numbers != null && numbers.contains(Address.fromExternal(getContext(), number).serialize());
 
-    viewHolder.getView().unbind();
-    viewHolder.getView().set(id, contactType, name, number, labelText, color, multiSelect);
+    viewHolder.getView().unbind(glideRequests);
+    viewHolder.getView().set(glideRequests, id, contactType, name, number, labelText, color, multiSelect);
     viewHolder.getView().setChecked(preSelected || selectedContacts.containsKey(id));
     viewHolder.getView().setEnabled(!preSelected);
   }
@@ -149,6 +150,11 @@ public class ContactSelectionListAdapter extends CursorRecyclerViewAdapter<ViewH
   @Override
   public void onBindHeaderViewHolder(HeaderViewHolder viewHolder, int position) {
     ((TextView)viewHolder.itemView).setText(getSpannedHeaderString(position));
+  }
+
+  @Override
+  public void onItemViewRecycled(ViewHolder holder) {
+    holder.getView().unbind(glideRequests);
   }
 
   @Override

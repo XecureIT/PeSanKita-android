@@ -35,7 +35,7 @@ public class AvatarHelper {
   }
 
   public static void setAvatar(@NonNull Context context, @NonNull Address address, @Nullable byte[] data)
-      throws IOException
+    throws IOException
   {
     if (data == null)  {
       delete(context, address);

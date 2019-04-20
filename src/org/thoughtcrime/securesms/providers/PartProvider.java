@@ -108,7 +108,7 @@ public class PartProvider extends ContentProvider {
       case SINGLE_ROW:
         PartUriParser      partUriParser = new PartUriParser(uri);
         DatabaseAttachment attachment    = DatabaseFactory.getAttachmentDatabase(getContext())
-            .getAttachment(null, partUriParser.getPartId());
+                                                          .getAttachment(null, partUriParser.getPartId());
 
         if (attachment != null) {
           return attachment.getContentType();

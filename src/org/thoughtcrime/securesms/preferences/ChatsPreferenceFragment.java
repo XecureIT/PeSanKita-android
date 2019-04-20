@@ -2,25 +2,30 @@ package org.thoughtcrime.securesms.preferences;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.res.TypedArray;
 import android.os.Bundle;
-import android.preference.EditTextPreference;
-import android.preference.ListPreference;
-import android.preference.Preference;
-import android.preference.Preference.OnPreferenceChangeListener;
-import android.support.v4.preference.PreferenceFragment;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.preference.CheckBoxPreference;
+import android.support.v7.preference.EditTextPreference;
+import android.support.v7.preference.ListPreference;
+import android.support.v7.preference.Preference;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.View;
+
+import com.doomonafireball.betterpickers.hmspicker.HmsPickerBuilder;
+import com.doomonafireball.betterpickers.hmspicker.HmsPickerDialogFragment;
 
 import org.thoughtcrime.securesms.ApplicationPreferencesActivity;
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.service.AutoRemoveListener;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
 import org.thoughtcrime.securesms.util.Trimmer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class ChatsPreferenceFragment extends ListSummaryPreferenceFragment {
   private static final String TAG = ChatsPreferenceFragment.class.getSimpleName();
@@ -28,7 +33,6 @@ public class ChatsPreferenceFragment extends ListSummaryPreferenceFragment {
   @Override
   public void onCreate(Bundle paramBundle) {
     super.onCreate(paramBundle);
-    addPreferencesFromResource(R.xml.preferences_chats);
 
     findPreference(TextSecurePreferences.MEDIA_DOWNLOAD_MOBILE_PREF)
         .setOnPreferenceChangeListener(new MediaDownloadChangeListener());
@@ -36,15 +40,26 @@ public class ChatsPreferenceFragment extends ListSummaryPreferenceFragment {
         .setOnPreferenceChangeListener(new MediaDownloadChangeListener());
     findPreference(TextSecurePreferences.MEDIA_DOWNLOAD_ROAMING_PREF)
         .setOnPreferenceChangeListener(new MediaDownloadChangeListener());
+    findPreference(TextSecurePreferences.AUTO_REMOVE_PREF)
+            .setOnPreferenceChangeListener(new EnableAutoRemoveClickListener());
+    findPreference(TextSecurePreferences.AUTO_REMOVE_TIMEOUT_INTERVAL_PREF)
+        .setOnPreferenceClickListener(new AutoRemoveIntervalClickListener());
+    findPreference(TextSecurePreferences.SAVED_MEDIA_AGE_PREF)
+            .setOnPreferenceClickListener(new FileAgeClickListener());
     findPreference(TextSecurePreferences.MESSAGE_BODY_TEXT_SIZE_PREF)
         .setOnPreferenceChangeListener(new ListSummaryListener());
-
     findPreference(TextSecurePreferences.THREAD_TRIM_NOW)
         .setOnPreferenceClickListener(new TrimNowClickListener());
     findPreference(TextSecurePreferences.THREAD_TRIM_LENGTH)
         .setOnPreferenceChangeListener(new TrimLengthValidationListener());
 
     initializeListSummary((ListPreference) findPreference(TextSecurePreferences.MESSAGE_BODY_TEXT_SIZE_PREF));
+    initializeSummary();
+  }
+
+  @Override
+  public void onCreatePreferences(@Nullable Bundle savedInstanceState, String rootKey) {
+    addPreferencesFromResource(R.xml.preferences_chats);
   }
 
   @Override
@@ -99,7 +114,7 @@ public class ChatsPreferenceFragment extends ListSummaryPreferenceFragment {
     }
   }
 
-  private class MediaDownloadChangeListener implements OnPreferenceChangeListener {
+  private class MediaDownloadChangeListener implements Preference.OnPreferenceChangeListener {
     @SuppressWarnings("unchecked")
     @Override public boolean onPreferenceChange(Preference preference, Object newValue) {
       Log.w(TAG, "onPreferenceChange");
@@ -136,6 +151,88 @@ public class ChatsPreferenceFragment extends ListSummaryPreferenceFragment {
       preference.setSummary(getResources().getQuantityString(R.plurals.ApplicationPreferencesActivity_messages_per_conversation, value, value));
       return true;
     }
+  }
+
+  private class EnableAutoRemoveClickListener implements Preference.OnPreferenceChangeListener {
+
+    @Override
+    public boolean onPreferenceChange(final Preference preference, Object newValue) {
+      if (((CheckBoxPreference)preference).isChecked()) {
+        TextSecurePreferences.setAutoRemovePref(getActivity(), false);
+        ((CheckBoxPreference)preference).setChecked(false);
+      } else {
+        TextSecurePreferences.setAutoRemovePref(getActivity(), true);
+        ((CheckBoxPreference)preference).setChecked(true);
+      }
+
+      AutoRemoveListener.schedule(getActivity());
+      return false;
+    }
+  }
+
+  private class AutoRemoveIntervalClickListener implements Preference.OnPreferenceClickListener, HmsPickerDialogFragment.HmsPickerDialogHandler {
+
+    @Override
+    public boolean onPreferenceClick(Preference preference) {
+      int[]      attributes = {R.attr.app_protect_timeout_picker_color};
+      TypedArray hmsStyle   = getActivity().obtainStyledAttributes(attributes);
+
+      new HmsPickerBuilder().setFragmentManager(getFragmentManager())
+              .setStyleResId(hmsStyle.getResourceId(0, R.style.BetterPickersDialogFragment_Light))
+              .addHmsPickerDialogHandler(this)
+              .show();
+
+      hmsStyle.recycle();
+      return true;
+    }
+
+    @Override
+    public void onDialogHmsSet(int reference, int hours, int minutes, int seconds) {
+      int timeoutMinutes = Math.max((int) TimeUnit.HOURS.toMinutes(hours) +
+              minutes                         +
+              (int)TimeUnit.SECONDS.toMinutes(seconds), 1);
+
+      TextSecurePreferences.setAutoRemoveTimeoutInterval(getActivity(), timeoutMinutes);
+      initializeSummary();
+      AutoRemoveListener.schedule(getActivity());
+    }
+  }
+
+  private class FileAgeClickListener implements Preference.OnPreferenceClickListener, HmsPickerDialogFragment.HmsPickerDialogHandler {
+
+    @Override
+    public boolean onPreferenceClick(Preference preference) {
+      int[]      attributes = {R.attr.app_protect_timeout_picker_color};
+      TypedArray hmsStyle   = getActivity().obtainStyledAttributes(attributes);
+
+      new HmsPickerBuilder().setFragmentManager(getFragmentManager())
+              .setStyleResId(hmsStyle.getResourceId(0, R.style.BetterPickersDialogFragment_Light))
+              .addHmsPickerDialogHandler(this)
+              .show();
+
+      hmsStyle.recycle();
+      return true;
+    }
+
+    @Override
+    public void onDialogHmsSet(int reference, int hours, int minutes, int seconds) {
+      int timeoutMinutes = Math.max((int) TimeUnit.HOURS.toMinutes(hours) +
+                           minutes +
+                           (int)TimeUnit.SECONDS.toMinutes(seconds), 1);
+
+      TextSecurePreferences.setSavedMediaAge(getActivity(), timeoutMinutes);
+      initializeSummary();
+      AutoRemoveListener.schedule(getActivity());
+    }
+  }
+
+  private void initializeSummary() {
+    int timeoutMinutesAutoRemove = TextSecurePreferences.getAutoRemoveTimeoutInterval(getActivity());
+    int savedMediaAge = TextSecurePreferences.getSavedMediaAge(getActivity());
+    this.findPreference(TextSecurePreferences.AUTO_REMOVE_TIMEOUT_INTERVAL_PREF)
+            .setSummary(getResources().getQuantityString(R.plurals.AppProtectionPreferenceFragment_minutes, timeoutMinutesAutoRemove, timeoutMinutesAutoRemove));
+    this.findPreference(TextSecurePreferences.SAVED_MEDIA_AGE_PREF)
+            .setSummary(getResources().getQuantityString(R.plurals.AppProtectionPreferenceFragment_minutes, savedMediaAge, savedMediaAge));
   }
 
   public static CharSequence getSummary(Context context) {
