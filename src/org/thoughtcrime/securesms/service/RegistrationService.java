@@ -10,8 +10,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.google.android.gms.gcm.GoogleCloudMessaging;
-
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.crypto.IdentityKeyUtil;
 import org.thoughtcrime.securesms.crypto.PreKeyUtil;
@@ -19,7 +17,8 @@ import org.thoughtcrime.securesms.crypto.SessionUtil;
 import org.thoughtcrime.securesms.database.Address;
 import org.thoughtcrime.securesms.database.DatabaseFactory;
 import org.thoughtcrime.securesms.database.IdentityDatabase;
-import org.thoughtcrime.securesms.jobs.GcmRefreshJob;
+import org.thoughtcrime.securesms.gcm.FcmUtil;
+import org.thoughtcrime.securesms.jobs.FcmRefreshJob;
 import org.thoughtcrime.securesms.push.AccountManagerFactory;
 import org.thoughtcrime.securesms.util.DirectoryHelper;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
@@ -44,7 +43,7 @@ import java.util.concurrent.Executors;
  * an executor:
  *
  * 1) Generate secrets.
- * 2) Register the specified number and those secrets with the server.
+ * 2) KPRegistrationBody the specified number and those secrets with the server.
  * 3) Wait for a challenge SMS.
  * 4) Verify the challenge with the server.
  * 5) Start the GCM registration process.
@@ -246,13 +245,13 @@ public class RegistrationService extends Service {
     setState(new RegistrationState(RegistrationState.STATE_GCM_REGISTERING, number));
 
     if (supportsGcm) {
-      String gcmRegistrationId = GoogleCloudMessaging.getInstance(this).register(GcmRefreshJob.REGISTRATION_ID);
-      accountManager.setGcmId(Optional.of(gcmRegistrationId));
+      Optional<String> gcmRegistrationId = FcmUtil.getToken();
+      accountManager.setGcmId(gcmRegistrationId);
 
-      TextSecurePreferences.setGcmRegistrationId(this, gcmRegistrationId);
-      TextSecurePreferences.setGcmDisabled(this, false);
+      TextSecurePreferences.setFcmToken(this, gcmRegistrationId.get());
+      TextSecurePreferences.setFcmDisabled(this, false);
     } else {
-      TextSecurePreferences.setGcmDisabled(this, true);
+      TextSecurePreferences.setFcmDisabled(this, true);
     }
 
     TextSecurePreferences.setWebsocketRegistered(this, true);

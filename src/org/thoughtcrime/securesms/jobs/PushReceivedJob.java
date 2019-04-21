@@ -2,7 +2,10 @@ package org.thoughtcrime.securesms.jobs;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.text.TextUtils;
 import android.util.Log;
+
+import com.google.zxing.common.StringUtils;
 
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.database.Address;
@@ -19,8 +22,32 @@ public abstract class PushReceivedJob extends ContextJob {
 
   private static final String TAG = PushReceivedJob.class.getSimpleName();
 
+  public static final Object RECEIVE_LOCK = new Object();
+
   protected PushReceivedJob(Context context, JobParameters parameters) {
     super(context, parameters);
+  }
+
+  public void processEnvelope(@NonNull SignalServiceEnvelope envelope) {
+    synchronized (RECEIVE_LOCK) {
+      if (!TextUtils.isEmpty(envelope.getSource())) {
+        Address   source    = Address.fromExternal(context, envelope.getSource());
+        Recipient recipient = Recipient.from(context, source, false);
+
+        if (!isActiveNumber(recipient)) {
+          DatabaseFactory.getRecipientDatabase(context).setRegistered(recipient, RecipientDatabase.RegisteredState.REGISTERED);
+          ApplicationContext.getInstance(context).getJobManager().add(new DirectoryRefreshJob(context, KeyCachingService.getMasterSecret(context), recipient, false));
+        }
+      }
+
+      if (envelope.isReceipt()) {
+        handleReceipt(envelope);
+      } else if (envelope.isPreKeySignalMessage() || envelope.isSignalMessage()) {
+        handle(envelope);
+      } else {
+        Log.w(TAG, "Received envelope of unknown type: " + envelope.getType());
+      }
+    }
   }
 
   public void handle(SignalServiceEnvelope envelope) {

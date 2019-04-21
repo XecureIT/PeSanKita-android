@@ -120,6 +120,90 @@ public class TextSecurePreferences {
   public  static final String INCOGNITO_KEYBORAD_PREF          = "pref_incognito_keyboard";
   private static final String SUCCESSFUL_DIRECTORY_PREF        = "pref_successful_directory";
 
+  private static final String NEEDS_MESSAGE_PULL               = "pref_needs_message_pull";
+
+  private static final String KP_MSISDN_PREF                   = "pref_kp_msisdn";
+  private static final String KP_NAME_PREF                     = "pref_kp_name";
+  private static final String KP_EMAIL_PREF                    = "pref_kp_email";
+  private static final String KP_NIK_PREF                      = "pref_kp_email";
+  private static final String KP_REFERRAL_PREF                 = "pref_kp_referral";
+  private static final String KP_PASSWORD_PREF                 = "pref_kp_password";
+  private static final String KP_FIRST_TIME_PREF               = "pref_kp_first_time";
+  private static final String KP_LOGGED_IN_PREF                = "pref_kp_logged_in";
+  private static final String KP_WILAYAH_IMPORTED_PREF         = "pref_kp_wilayah_imported";
+
+  public static @Nullable String kpGetMsisdn(Context context) {
+    return getStringPreference(context, KP_MSISDN_PREF, null);
+  }
+
+  public static void kpSetMsisdn(Context context, String msisdn) {
+    setStringPreference(context, KP_MSISDN_PREF, msisdn);
+  }
+
+  public static @Nullable String kpGetName(Context context) {
+    return getStringPreference(context, KP_NAME_PREF, null);
+  }
+
+  public static void kpSetName(Context context, String name) {
+    setStringPreference(context, KP_NAME_PREF, name);
+  }
+
+  public static @Nullable String kpGetEmail(Context context) {
+    return getStringPreference(context, KP_EMAIL_PREF, null);
+  }
+
+  public static void kpSetEmail(Context context, String email) {
+    setStringPreference(context, KP_EMAIL_PREF, email);
+  }
+
+  public static @Nullable String kpGetNik(Context context) {
+    return getStringPreference(context, KP_NIK_PREF, null);
+  }
+
+  public static void kpSetNik(Context context, String nik) {
+    setStringPreference(context, KP_NIK_PREF, nik);
+  }
+
+  public static @Nullable String kpGetReferral(Context context) {
+    return getStringPreference(context, KP_REFERRAL_PREF, null);
+  }
+
+  public static void kpSetReferral(Context context, String referral) {
+    setStringPreference(context, KP_REFERRAL_PREF, referral);
+  }
+
+  public static @Nullable String kpGetPassword(Context context) {
+    return getStringPreference(context, KP_PASSWORD_PREF, null);
+  }
+
+  public static void kpSetPassword(Context context, String password) {
+    setStringPreference(context, KP_PASSWORD_PREF, password);
+  }
+
+  public static Boolean kpGetFirstTime(Context context) {
+    return getBooleanPreference(context, KP_FIRST_TIME_PREF, false);
+  }
+
+  public static void kpSetFirstTime(Context context, Boolean firstTime) {
+    setBooleanPreference(context, KP_FIRST_TIME_PREF, firstTime);
+  }
+
+  public static Boolean kpIsLoggedIn(Context context) {
+    return getBooleanPreference(context, KP_LOGGED_IN_PREF, false);
+  }
+
+  public static void kpSetLoggedIn(Context context, Boolean loggedIn) {
+    setBooleanPreference(context, KP_LOGGED_IN_PREF, loggedIn);
+  }
+
+  public static Boolean kpIsWilayahImported(Context context) {
+    return getBooleanPreference(context, KP_WILAYAH_IMPORTED_PREF, false);
+  }
+
+  public static void kpSetWilayahImported(Context context, Boolean imported) {
+    setBooleanPreference(context, KP_WILAYAH_IMPORTED_PREF, imported);
+  }
+
   public static void setHasSuccessfullyRetrievedDirectory(Context context, boolean value) {
     setBooleanPreference(context, SUCCESSFUL_DIRECTORY_PREF, value);
   }
@@ -176,11 +260,11 @@ public class TextSecurePreferences {
     return getBooleanPreference(context, ALWAYS_RELAY_CALLS_PREF, false);
   }
 
-  public static boolean isGcmDisabled(Context context) {
+  public static boolean isFcmDisabled(Context context) {
     return getBooleanPreference(context, GCM_DISABLED_PREF, false);
   }
 
-  public static void setGcmDisabled(Context context, boolean disabled) {
+  public static void setFcmDisabled(Context context, boolean disabled) {
     setBooleanPreference(context, GCM_DISABLED_PREF, disabled);
   }
 
@@ -274,12 +358,12 @@ public class TextSecurePreferences {
     setBooleanPreference(context, SIGNED_PREKEY_REGISTERED_PREF, value);
   }
 
-  public static void setGcmRegistrationId(Context context, String registrationId) {
+  public static void setFcmToken(Context context, String registrationId) {
     setStringPreference(context, GCM_REGISTRATION_ID_PREF, registrationId);
     setIntegerPrefrence(context, GCM_REGISTRATION_ID_VERSION_PREF, Util.getCurrentApkReleaseVersion(context));
   }
 
-  public static String getGcmRegistrationId(Context context) {
+  public static String getFcmToken(Context context) {
     int storedRegistrationIdVersion = getIntegerPreference(context, GCM_REGISTRATION_ID_VERSION_PREF, 0);
 
     if (storedRegistrationIdVersion != Util.getCurrentApkReleaseVersion(context)) {
@@ -289,11 +373,11 @@ public class TextSecurePreferences {
     }
   }
 
-  public static long getGcmRegistrationIdLastSetTime(Context context) {
+  public static long getFcmTokenLastSetTime(Context context) {
     return getLongPreference(context, GCM_REGISTRATION_ID_TIME_PREF, 0);
   }
 
-  public static void setGcmRegistrationIdLastSetTime(Context context, long timestamp) {
+  public static void setFcmTokenLastSetTime(Context context, long timestamp) {
     setLongPreference(context, GCM_REGISTRATION_ID_TIME_PREF, timestamp);
   }
 
@@ -713,6 +797,14 @@ public class TextSecurePreferences {
     return getStringSetPreference(context,
                                   key,
                                   new HashSet<>(Arrays.asList(context.getResources().getStringArray(defaultValuesRes))));
+  }
+
+  public static boolean getNeedsMessagePull(Context context) {
+    return getBooleanPreference(context, NEEDS_MESSAGE_PULL, false);
+  }
+
+  public static void setNeedsMessagePull(Context context, boolean needsMessagePull) {
+    setBooleanPreference(context, NEEDS_MESSAGE_PULL, needsMessagePull);
   }
 
   public static void setBooleanPreference(Context context, String key, boolean value) {

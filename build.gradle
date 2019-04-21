@@ -2,13 +2,15 @@ import java.security.MessageDigest
 
 buildscript {
     repositories {
+        google()
         maven {
             url "https://repo1.maven.org/maven2"
             jcenter()
         }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'com.android.tools.build:gradle:3.3.0'
+        classpath 'com.google.gms:google-services:4.0.2'
         classpath files('libs/gradle-witness.jar')
         classpath 'me.tatarka:gradle-retrolambda:3.7.0'
     }
@@ -16,7 +18,7 @@ buildscript {
 
 apply plugin: 'com.android.application'
 apply plugin: 'witness'
-apply plugin: 'me.tatarka.retrolambda'
+//apply plugin: 'me.tatarka.retrolambda'
 
 repositories {
     maven {
@@ -35,29 +37,40 @@ repositories {
         url "https://raw.github.com/whispersystems/maven/master/shortcutbadger/releases/"
     }
     maven {
+        url "https://raw.github.com/signalapp/maven/master/circular-progress-button/releases/"
+    }
+    maven {
         url "https://maven.google.com"
     }
     maven { // textdrawable
         url 'https://dl.bintray.com/amulyakhare/maven'
     }
+    maven {
+        url "https://jitpack.io"
+    }
     jcenter()
     mavenLocal()
+    google()
 }
 
 dependencies {
-    compile 'com.android.support:appcompat-v7:26.1.0'
-    compile 'com.android.support:recyclerview-v7:26.1.0'
-    compile 'com.android.support:design:26.1.0'
-    compile 'com.android.support:support-v13:26.1.0'
-    compile 'com.android.support:cardview-v7:26.1.0'
-    compile 'com.android.support:preference-v7:26.1.0'
-    compile 'com.android.support:preference-v14:26.1.0'
-    compile 'com.android.support:gridlayout-v7:26.1.0'
+    def supportVersion = '26.1.0'
+
+    compile "com.android.support:appcompat-v7:$supportVersion"
+    compile "com.android.support:recyclerview-v7:$supportVersion"
+    compile "com.android.support:design:$supportVersion"
+    compile "com.android.support:support-v13:$supportVersion"
+    compile "com.android.support:cardview-v7:$supportVersion"
+    compile "com.android.support:preference-v7:$supportVersion"
+    compile "com.android.support:preference-v14:$supportVersion"
+    compile "com.android.support:gridlayout-v7:$supportVersion"
+    compile "com.android.support:percent:$supportVersion"
     compile 'com.android.support:multidex:1.0.2'
 
-    compile 'com.google.android.gms:play-services-gcm:9.6.1'
-    compile 'com.google.android.gms:play-services-maps:9.6.1'
-    compile 'com.google.android.gms:play-services-places:9.6.1'
+    compile 'com.google.firebase:firebase-messaging:17.3.4'
+    compile 'com.google.firebase:firebase-core:16.0.6'
+    compile 'com.google.android.gms:play-services-maps:16.0.0'
+    compile 'com.google.android.gms:play-services-places:16.0.0'
 
     compile 'com.google.android.exoplayer:exoplayer:r2.3.1'
 
@@ -87,11 +100,12 @@ dependencies {
     compile 'com.melnykov:floatingactionbutton:1.3.0'
     compile 'com.google.zxing:android-integration:3.1.0'
     compile 'com.squareup.dagger:dagger:1.2.2'
+    annotationProcessor 'com.squareup.dagger:dagger-compiler:1.2.2'
     compile ("com.doomonafireball.betterpickers:library:1.5.3") {
         exclude group: 'com.android.support', module: 'support-v4'
     }
     compile 'com.madgag.spongycastle:prov:1.51.0.0'
-    provided 'com.squareup.dagger:dagger-compiler:1.2.2'
+    compileOnly 'com.squareup.dagger:dagger-compiler:1.2.2'
     compile 'com.amulyakhare:com.amulyakhare.textdrawable:1.0.1'
     compile 'com.google.zxing:core:3.2.1'
     compile ('com.davemorrissey.labs:subsampling-scale-image-view:3.6.0') {
@@ -113,29 +127,38 @@ dependencies {
         exclude group: 'com.android.support', module: 'recyclerview-v7'
     }
     compile 'com.codewaves.stickyheadergrid:stickyheadergrid:0.9.4'
-    compile 'com.github.dmytrodanylyk.circular-progress-button:library:1.1.3'
+    compile 'com.github.dmytrodanylyk.circular-progress-button:library:1.1.3-S2'
     compile 'com.google.code.gson:gson:2.8.2'
     compile 'com.abangfadli.shotwatch:shotwatch:1.0.4'
+    compile ('com.squareup.retrofit2:retrofit:2.5.0') {
+        exclude group: 'com.squareup.okhttp3', module: 'okhttp'
+        exclude group: 'com.squareup.okio', module: 'okio'
+    }
+    compile 'com.squareup.retrofit2:converter-gson:2.1.0'
 
-    testCompile 'junit:junit:4.12'
-    testCompile 'org.assertj:assertj-core:1.7.1'
-    testCompile 'org.mockito:mockito-core:1.9.5'
-    testCompile 'org.powermock:powermock-api-mockito:1.6.1'
-    testCompile 'org.powermock:powermock-module-junit4:1.6.1'
-    testCompile 'org.powermock:powermock-module-junit4-rule:1.6.1'
-    testCompile 'org.powermock:powermock-classloading-xstream:1.6.1'
+    testImplementation  'junit:junit:4.12'
+    testImplementation  'org.assertj:assertj-core:1.7.1'
+    testImplementation  'org.mockito:mockito-core:1.9.5'
+    testImplementation  'org.powermock:powermock-api-mockito:1.6.1'
+    testImplementation  'org.powermock:powermock-module-junit4:1.6.1'
+    testImplementation  'org.powermock:powermock-module-junit4-rule:1.6.1'
+    testImplementation  'org.powermock:powermock-classloading-xstream:1.6.1'
 
-    androidTestCompile 'com.android.support:multidex:1.0.2'
-    androidTestCompile 'com.android.support:multidex-instrumentation:1.0.2'
-    androidTestCompile 'com.google.dexmaker:dexmaker:1.2'
-    androidTestCompile 'com.google.dexmaker:dexmaker-mockito:1.2'
-    androidTestCompile ('org.assertj:assertj-core:1.7.1') {
+    androidTestImplementation   'com.android.support:multidex:1.0.2'
+    androidTestImplementation   'com.android.support:multidex-instrumentation:1.0.2'
+    androidTestImplementation   'com.google.dexmaker:dexmaker:1.2'
+    androidTestImplementation   'com.google.dexmaker:dexmaker-mockito:1.2'
+    androidTestImplementation   ('org.assertj:assertj-core:1.7.1') {
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
     }
-    androidTestCompile ('com.squareup.assertj:assertj-android:1.1.1') {
+    androidTestImplementation   ('com.squareup.assertj:assertj-android:1.1.1') {
         exclude group: 'org.hamcrest',        module: 'hamcrest-core'
         exclude group: 'com.android.support', module: 'support-annotations'
     }
+
+    compile 'com.mikhaellopez:circularimageview:3.2.0'
+    compile 'com.balysv:material-ripple:1.0.2'
+    compile 'com.github.chrisbanes:PhotoView:2.1.3'
 }
 
 dependencyVerification {
@@ -149,9 +172,10 @@ dependencyVerification {
         'com.android.support:preference-v14:f340c88589184fd53ad46aebbba1ae5b88b5919f92ed085bf0f687a58d0e0e17',
         'com.android.support:gridlayout-v7:6fe57dd164f2e1d99ad650a56f686ddecd02bfbfabbfbd451e81a23eada5e564',
         'com.android.support:multidex:7cd48755c7cfdb6dd2d21cbb02236ec390f6ac91cde87eb62f475b259ab5301d',
-        'com.google.android.gms:play-services-gcm:312e61253a236f2d9b750b9c04fc92fd190d23b0b2755c99de6ce4a28b259dae',
-        'com.google.android.gms:play-services-maps:45e8021e7ddac4a44a82a0e9698991389ded3023d35c58f38dbd86d54211ec0e',
-        'com.google.android.gms:play-services-places:abf3a4a3b146ec7e6e753be62775e512868cf37d6f88ffe2d81167b33b57132b',
+        'com.google.firebase:firebase-messaging:e42288e7950d7d3b033d3395a5ac9365d230da3e439a2794ec13e2ef0fbaf078',
+        'com.google.firebase:firebase-core:07d1544aeed9690843858982ea5a69506038f94e93b5d031b741ba9164f6258a',
+        'com.google.android.gms:play-services-maps:07f59c5955b759ce7b80ceaeb8261643c5b79acc9f180df2b7c3987658eed2e8',
+        'com.google.android.gms:play-services-places:2d5c4e4ac3ee5be21b4ec544411bc51d11457b5ae2fa2a5d4539019f87c233c6',
         'com.google.android.exoplayer:exoplayer:955085aa611a8f7cf6c61b88ae03d1a392f4ad94c9bfbc153f3dedb9ffb14718',
         'org.whispersystems:jobmanager:506f679fc2fcf7bb6d10f00f41d6f6ea0abf75c70dc95b913398661ad538a181',
         'org.whispersystems:libpastelog:bb331d9a98240fc139101128ba836c1edec3c40e000597cdbb29ebf4cbf34d88',
@@ -181,7 +205,7 @@ dependencyVerification {
         'com.annimon:stream:5da6e2e3e0551d61a3ea7014f04312276549e3dd739cf637996e4cf43c5535b9',
         'com.takisoft.fix:colorpicker:f5d0dbabe406a1800498ca9c1faf34db36e021d8488bf10360f29961fe3ab0d1',
         'com.codewaves.stickyheadergrid:stickyheadergrid:5b4aa6a52a957cfd55f60f4220c11c0c371385a3cb9786cae03c260dcdef5794',
-        'com.github.dmytrodanylyk.circular-progress-button:library:635882453475181d737719b2adef658d80f9f85c9bdaf022f06cd22f387cdb16',
+        'com.github.dmytrodanylyk.circular-progress-button:library:8dc6a29a5a8db7b2ad5a9a7fda1dc9ae0893f4c8f0545732b2c63854ea693e8e',
         'com.android.support:support-annotations:99d6199ad5a09a0e5e8a49a4cc08f818483ddcfd7eedea2f9923412daf982309',
         'com.android.support:support-v4:36d8385de1be7791231acb933b757198f97cb53bc7d046e8c4bc403d214caaca',
         'com.android.support:support-vector-drawable:1151b7f0ea29c9a9a8fee042a1dbe82f196632d801c438d08b279e131c767118',
@@ -189,9 +213,15 @@ dependencyVerification {
         'com.android.support:support-compat:7d6da01cf9766b1705c6c80cfc12274a895b406c4c287900b07a56145ca6c030',
         'com.android.support:support-core-ui:82f538051599335ea881ec264407547cab52be750f16ce099cfb27754fc755ff',
         'com.android.support:transition:c5d3d1204997f80af1f4a3a315a54b1a23543c554963cef831da726aac34b56f',
-        'com.google.android.gms:play-services-base:0ca636a8fc9a5af45e607cdcd61783bf5d561cbbb0f862021ce69606eee5ad49',
-        'com.google.android.gms:play-services-basement:95dd882c5ffba15b9a99de3fefb05d3a01946623af67454ca00055d222f85a8d',
-        'com.google.android.gms:play-services-iid:54e919f9957b8b7820da7ee9b83471d00d0cac1cf08ddea8b5b41aea80bb1a70',
+        'com.google.android.gms:play-services-base:aca10c780c3219bc50f3db06734f4ab88badd3113c564c0a3156ff8ff674655b',
+        'com.google.android.gms:play-services-basement:e08bfd1e87c4e50ef76161d7ac76b873aeb975367eeb3afa4abe62ea1887c7c6',
+        'com.google.firebase:firebase-measurement-connector-impl:eacaa68ed2c5c390b517267d7dae34268084d43b006db12682db88d17bbdc0ee',
+        'com.google.firebase:firebase-analytics:91a6b814b556779c223c80f52d0ca8ed48edbd4645b0d9104ac7b22639d5acf1',
+        'com.google.android.gms:play-services-measurement-api:a026fc70e777bcda3f7e51e68e331a03ed7a1143a7b3e3f67b99c21177a5b4d5',
+        'com.google.firebase:firebase-analytics-impl:dff7c79fe2dc3bef441057ae36678b51e27301f9b03377657170820bbe3c7441',
+        'com.google.firebase:firebase-iid:bb42774e309d5eac1aa493d19711032bee4f677a409639b6a5cfa93089af93eb',
+        'com.google.firebase:firebase-iid-interop:2a86322b9346fd4836219206d249e85803311655e96036a8e4b714ce7e79693b',
+        'com.google.firebase:firebase-common:3db6bfd4c6f758551e5f9acdeada2050577277e6da1aefb2412de23829759bcf',
         'org.whispersystems:signal-protocol-android:5b8acded7f2a40178eb90ab8e8cbfec89d170d91b3ff5e78487d1098df6185a1',
         //'org.whispersystems:signal-service-java:ef89da56b915490bb907d848eae79efdf1218e985763e7dd2e8047c7ccb03c0c',
         'com.github.bumptech.glide:gifdecoder:fe793861d4d4619b5041d3bd68186000b6151581292053e88c96a5d0b60e5337',
@@ -202,20 +232,25 @@ dependencyVerification {
         'com.klinkerapps:logger:177e325259a8b111ad6745ec10db5861723c99f402222b80629f576f49408541',
         'com.google.android:flexbox:a9989fd13ae2ee42765dfc515fe362edf4f326e74925d02a10369df8092a4935',
         'android.arch.lifecycle:runtime:e4e34e5d02bd102e8d39ddbc29f9ead8a15a61e367993d02238196ac48509ad8',
-        'com.google.android.gms:play-services-tasks:69ec265168e601d0203d04cd42e34bb019b2f029aa1e16fabd38a5153eea2086',
+        'com.google.android.gms:play-services-tasks:b31c18d8d1cc8d9814f295ee7435471333f370ba5bd904ca14f8f2bec4f35c35',
+        'com.google.firebase:firebase-measurement-connector:bc318110486ed738e1cc84d4b280e156b35a9a3964d678ee64930d846150d0c3',
+        'com.google.android.gms:play-services-places-placereport:04f8baeb1f8f8a734c7d4b1701a3974281b45591affa7e963b59dd019b8abc6e',
+        'com.google.android.gms:play-services-stats:5b2d8281adbfd6e74d2295c94bab9ea80fc9a84dfbb397995673f5af4d4c6368',
+        'com.google.android.gms:play-services-measurement-base:887ddc8b384108a35ff7a41c8bc5c653dcedb44d9d6e46110569f586898d3c1d',
+        'com.google.android.gms:play-services-ads-identifier:380b09bfc5389fff93b5719c04e57c99678c9c3af0402a91e26d89734babcc49',
         'org.whispersystems:curve25519-android:82595394422b957d4a5b5f1b27b75ba25cf6dc4db4d312418ca38cd6fff279ca',
         'org.whispersystems:signal-protocol-java:5152c2b01a25147967d6bf82e540f947901bdfa79260be3eb3e96b03f787d6b5',
         'com.google.protobuf:protobuf-java:e0c1c64575c005601725e7c6a02cebf9e1285e888f756b2a1d73ffa8d725cc74',
         'com.googlecode.libphonenumber:libphonenumber:be23ec6195df9f328364a3122ddd111e30f42d18a841dd06f84d2685c7fabb9f',
         'com.fasterxml.jackson.core:jackson-databind:835097bcdd11f5bc8a08378c70d4c8054dfa4b911691cc2752063c75534d198d',
-        'com.squareup.okhttp3:okhttp:c1d57f913f74f61d424d4250a92723ba9a61affc12a0ab194d84cc179b472841',
+//        'com.squareup.okhttp3:okhttp:c1d57f913f74f61d424d4250a92723ba9a61affc12a0ab194d84cc179b472841',
         'com.madgag.spongycastle:prov:b8c3fec3a59aac1aa04ccf4dad7179351e54ef7672f53f508151b614c131398a',
         'android.arch.lifecycle:common:86bf301a20ad0cd0a391e22a52e6fbf90575c096ff83233fa9fd0d52b3219121',
         'android.arch.core:common:5192934cd73df32e2c15722ed7fc488dde90baaec9ae030010dd1a80fb4e74e1',
         'org.whispersystems:curve25519-java:7dd659d8822c06c3aea1a47f18fac9e5761e29cab8100030b877db445005f03e',
         'com.fasterxml.jackson.core:jackson-annotations:0ca408c24202a7626ec8b861e99d85eca5e38b73311dd6dd12e3e9deecc3fe94',
         'com.fasterxml.jackson.core:jackson-core:cbf4604784b4de226262845447a1ad3bb38a6728cebe86562e2c5afada8be2c0',
-        'com.squareup.okio:okio:734269c3ebc5090e3b23566db558f421f0b4027277c79ad5d176b8ec168bb850',
+//        'com.squareup.okio:okio:734269c3ebc5090e3b23566db558f421f0b4027277c79ad5d176b8ec168bb850',
         'com.madgag.spongycastle:core:8d6240b974b0aca4d3da9c7dd44d42339d8a374358aca5fc98e50a995764511f',
         'com.android.support:support-media-compat:9d8cee7cd40eff22ebdeb90c8e70f5ee96c5bd25cb2c3e3b3940e27285a3e98a',
         'com.android.support:support-core-utils:4fda6d4eb430971e3b1dad7456988333f374b0f4ba15f99839ca1a0ab5155c8a',
@@ -224,8 +259,9 @@ dependencyVerification {
 }
 
 android {
+    flavorDimensions "none"
     compileSdkVersion 26
-    buildToolsVersion '25.0.2'
+    buildToolsVersion '28.0.3'
     useLibrary 'org.apache.http.legacy'
 
     dexOptions {
@@ -233,11 +269,11 @@ android {
     }
 
     defaultConfig {
-        versionCode 31
-        versionName "1.4.7"
+        versionCode 43
+        versionName "1.4.19"
 
         applicationId "id.kita.pesan.secure"
-        minSdkVersion 21
+        minSdkVersion 19
         targetSdkVersion 26
         multiDexEnabled true
 
@@ -252,6 +288,10 @@ android {
         buildConfigField "String", "USER_AGENT", "\"OWA\""
         buildConfigField "boolean", "DEV_BUILD", "false"
         buildConfigField "String", "REGISTRATION_NUMBER", "\"081388390311\""
+        buildConfigField "String", "KP_HOSTNAME", "\"kawalpilpres2019.id\""
+        buildConfigField "String", "KP_BASE_URL", "\"https://kawalpilpres2019.id\""
+        buildConfigField "String", "KP_C1_URL", "\"https://kawalpilpres2019.id\""
+        buildConfigField "String", "KP_C1_URL_DEV", "\"https://kawalpilpres2019.id\""
     }
 
     compileOptions {
@@ -305,12 +345,14 @@ android {
 
     productFlavors {
         play {
+            dimension "none"
             ext.websiteUpdateUrl = "null"
             buildConfigField "boolean", "PLAY_STORE_DISABLED", "false"
             buildConfigField "String", "NOPLAY_UPDATE_URL", "$ext.websiteUpdateUrl"
         }
 
         website {
+            dimension "none"
             ext.websiteUpdateUrl = "https://updates.pesan.kita.id/android"
             buildConfigField "boolean", "PLAY_STORE_DISABLED", "true"
             buildConfigField "String", "NOPLAY_UPDATE_URL", "\"$ext.websiteUpdateUrl\""
@@ -433,4 +475,4 @@ if (propFile.canRead()){
     println 'signing.properties not found'
     android.buildTypes.release.signingConfig = null
 }
-
+apply plugin: 'com.google.gms.google-services'

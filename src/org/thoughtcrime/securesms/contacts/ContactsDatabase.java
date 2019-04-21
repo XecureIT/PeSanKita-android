@@ -84,20 +84,36 @@ public class ContactsDatabase {
     ArrayList<ContentProviderOperation> operations           = new ArrayList<>();
     Map<Address, SignalContact>         currentContacts      = getSignalRawContacts(account);
 
-    for (Address registeredAddress : registeredAddressList) {
-      registeredAddressSet.add(registeredAddress);
+    if (!registeredAddressList.isEmpty()) {
+      int offset = 0; int chunk = 100; int remaining = registeredAddressList.size();
+      while (remaining > 0) {
+        operations.clear();
+        int length = remaining >= chunk ? chunk : remaining;
+        List<Address> processedAddressList = new ArrayList<>(registeredAddressList.subList(offset, offset + length));
+        for (Address processedAddress : processedAddressList) {
+          registeredAddressSet.add(processedAddress);
 
-      if (!currentContacts.containsKey(registeredAddress)) {
-        Optional<SystemContactInfo> systemContactInfo = getSystemContactInfo(registeredAddress);
+          if (!currentContacts.containsKey(processedAddress)) {
+            Optional<SystemContactInfo> systemContactInfo = getSystemContactInfo(processedAddress);
 
-        if (systemContactInfo.isPresent()) {
-          Log.w(TAG, "Adding number: " + registeredAddress);
-          addTextSecureRawContact(operations, account, systemContactInfo.get().number,
-                                  systemContactInfo.get().name, systemContactInfo.get().id,
-                                  false);
+            if (systemContactInfo.isPresent()) {
+              Log.w(TAG, "Adding number: " + processedAddress);
+              addTextSecureRawContact(operations, account, systemContactInfo.get().number,
+                      systemContactInfo.get().name, systemContactInfo.get().id,
+                      false);
+            }
+          }
         }
+
+        if (!operations.isEmpty()) {
+          context.getContentResolver().applyBatch(ContactsContract.AUTHORITY, operations);
+        }
+
+        offset += length; remaining -= length;
       }
     }
+
+    operations.clear();
 
     for (Map.Entry<Address, SignalContact> currentContactEntry : currentContacts.entrySet()) {
       if (!registeredAddressSet.contains(currentContactEntry.getKey())) {

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_profile"
+        android:title="Akun Saya" />
+
+    <item
+        android:id="@+id/menu_invite"
+        android:title="Undang Teman" />
+
+    <item
+        android:id="@+id/menu_logout"
+        android:orderInCategory="100"
+        android:title="Logout"
+        android:visible="false" />
+</menu>

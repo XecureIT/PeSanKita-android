@@ -50,6 +50,8 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import org.thoughtcrime.securesms.ConversationListAdapter.ItemClickListener;
 import org.thoughtcrime.securesms.components.recyclerview.DeleteItemAnimator;
@@ -70,8 +72,10 @@ import org.thoughtcrime.securesms.database.loaders.ConversationListLoader;
 import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.notifications.MarkReadReceiver;
 import org.thoughtcrime.securesms.notifications.MessageNotifier;
+import org.thoughtcrime.securesms.pemilu.KPSplashActivity;
 import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.util.Util;
+import org.thoughtcrime.securesms.util.ViewAnimation;
 import org.thoughtcrime.securesms.util.ViewUtil;
 import org.thoughtcrime.securesms.util.task.SnackbarAsyncTask;
 import org.whispersystems.libsignal.util.guava.Optional;
@@ -113,9 +117,10 @@ public class ConversationListFragment extends Fragment
     list         = ViewUtil.findById(view, R.id.list);
     fab          = ViewUtil.findById(view, R.id.fab);
 
-    fab.setVisibility(View.GONE);
-//    if (archive) fab.setVisibility(View.GONE);
-//    else         fab.setVisibility(View.VISIBLE);
+//    fab.setVisibility(View.GONE);
+    if (archive) fab.setVisibility(View.GONE);
+    else         fab.setVisibility(View.VISIBLE);
+
 
     reminderView.setOnDismissListener(new OnDismissListener() {
       @Override
@@ -140,12 +145,14 @@ public class ConversationListFragment extends Fragment
     super.onActivityCreated(bundle);
 
     setHasOptionsMenu(true);
+
     fab.setOnClickListener(new OnClickListener() {
       @Override
       public void onClick(View v) {
-        startActivity(new Intent(getActivity(), NewConversationActivity.class));
+        startActivity(new Intent(getActivity(), KPSplashActivity.class));
       }
     });
+
     initializeListAdapter();
   }
 

@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:fillViewport="true"
+        android:focusable="true">
+
+        <LinearLayout
+            android:id="@+id/content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="5">
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    android:padding="12dp"
+                    android:text="Form Laporan"
+                    android:textColor="@color/kawalpilpres_primary"
+                    android:textSize="24sp" />
+
+                <ImageButton
+                    android:id="@+id/exit"
+                    android:layout_width="?attr/actionBarSize"
+                    android:layout_height="?attr/actionBarSize"
+                    android:layout_alignParentEnd="true"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:tint="@color/gray50"
+                    app:srcCompat="@drawable/ic_close_white_24dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="?attr/actionBarSize"
+                    android:background="@color/white"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/labelProvinsi"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginBottom="-10dp"
+                            android:text="Provinsi"
+                            android:textColor="@color/gray50"
+                            android:textSize="18sp"
+                            android:visibility="invisible" />
+
+                        <Button
+                            android:id="@+id/provinsi"
+                            android:layout_width="match_parent"
+                            android:layout_height="45dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:drawableEnd="@drawable/ic_keyboard_arrow_down_dark_24dp"
+                            android:gravity="left|center"
+                            android:onClick="clickAction"
+                            android:paddingLeft="@dimen/spacing_middle"
+                            android:paddingRight="@dimen/spacing_middle"
+                            android:paddingBottom="0dp"
+                            android:text="Provinsi"
+                            android:textAllCaps="false"
+                            android:textColor="@color/gray65"
+                            android:textSize="18sp"
+                            android:textStyle="normal" />
+
+                        <ProgressBar
+                            android:id="@+id/progressProvinsi"
+                            style="?android:attr/progressBarStyleLarge"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="end"
+                            android:layout_marginTop="-35dp"
+                            android:layout_marginEnd="15dp"
+                            android:visibility="invisible" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginTop="-10dp"
+                        android:layout_marginEnd="5dp"
+                        android:background="@color/gray10" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/labelKabupaten"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginBottom="-10dp"
+                            android:text="Kabupaten/Kota"
+                            android:textColor="@color/gray50"
+                            android:textSize="18sp"
+                            android:visibility="invisible" />
+
+                        <Button
+                            android:id="@+id/kabupaten"
+                            android:layout_width="match_parent"
+                            android:layout_height="45dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:drawableEnd="@drawable/ic_keyboard_arrow_down_dark_24dp"
+                            android:gravity="start|center"
+                            android:onClick="clickAction"
+                            android:paddingLeft="@dimen/spacing_middle"
+                            android:paddingRight="@dimen/spacing_middle"
+                            android:paddingBottom="5dp"
+                            android:text="Kabupaten/Kota"
+                            android:textAllCaps="false"
+                            android:textColor="@color/gray65"
+                            android:textSize="18sp"
+                            android:textStyle="normal" />
+
+                        <ProgressBar
+                            android:id="@+id/progressKabupaten"
+                            style="?android:attr/progressBarStyleLarge"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="end"
+                            android:layout_marginTop="-35dp"
+                            android:layout_marginEnd="15dp"
+                            android:visibility="invisible" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginTop="-10dp"
+                        android:layout_marginEnd="5dp"
+                        android:background="@color/gray10" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/labelKecamatan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginBottom="-10dp"
+                            android:text="Kecamatan"
+                            android:textColor="@color/gray50"
+                            android:textSize="18sp"
+                            android:visibility="invisible" />
+
+                        <Button
+                            android:id="@+id/kecamatan"
+                            android:layout_width="match_parent"
+                            android:layout_height="45dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:drawableEnd="@drawable/ic_keyboard_arrow_down_dark_24dp"
+                            android:gravity="start|center"
+                            android:onClick="clickAction"
+                            android:paddingLeft="@dimen/spacing_middle"
+                            android:paddingRight="@dimen/spacing_middle"
+                            android:paddingBottom="5dp"
+                            android:text="Kecamatan"
+                            android:textAllCaps="false"
+                            android:textColor="@color/gray65"
+                            android:textSize="18sp"
+                            android:textStyle="normal" />
+
+                        <ProgressBar
+                            android:id="@+id/progressKecamatan"
+                            style="?android:attr/progressBarStyleLarge"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="end"
+                            android:layout_marginTop="-35dp"
+                            android:layout_marginEnd="15dp"
+                            android:visibility="invisible" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginTop="-10dp"
+                        android:layout_marginEnd="5dp"
+                        android:background="@color/gray10" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/labelKelurahan"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_marginBottom="-10dp"
+                            android:text="Kelurahan/Desa"
+                            android:textColor="@color/gray50"
+                            android:textSize="18sp"
+                            android:visibility="invisible" />
+
+                        <Button
+                            android:id="@+id/kelurahan"
+                            android:layout_width="match_parent"
+                            android:layout_height="45dp"
+                            android:background="?attr/selectableItemBackground"
+                            android:drawableEnd="@drawable/ic_keyboard_arrow_down_dark_24dp"
+                            android:gravity="start|center"
+                            android:onClick="clickAction"
+                            android:paddingLeft="@dimen/spacing_middle"
+                            android:paddingRight="@dimen/spacing_middle"
+                            android:paddingBottom="5dp"
+                            android:text="Kelurahan/Desa"
+                            android:textAllCaps="false"
+                            android:textColor="@color/gray65"
+                            android:textSize="18sp"
+                            android:textStyle="normal" />
+
+                        <ProgressBar
+                            android:id="@+id/progressKelurahan"
+                            style="?android:attr/progressBarStyleLarge"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:layout_gravity="end"
+                            android:layout_marginTop="-35dp"
+                            android:layout_marginEnd="15dp"
+                            android:visibility="invisible" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginTop="-10dp"
+                        android:layout_marginEnd="5dp"
+                        android:background="@color/gray10" />
+
+                    <android.support.design.widget.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintTextAppearance="@style/KpHintSize">
+
+                        <EditText
+                            android:id="@+id/tps"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:enabled="true"
+                            android:hint="No. TPS"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:padding="10dp"
+                            android:singleLine="true" />
+                    </android.support.design.widget.TextInputLayout>
+
+                    <android.support.design.widget.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintTextAppearance="@style/KpHintSize">
+
+                        <EditText
+                            android:id="@+id/count1"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:enabled="true"
+                            android:hint="Jumlah Suara Paslon 01"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:padding="10dp"
+                            android:singleLine="true" />
+                    </android.support.design.widget.TextInputLayout>
+
+                    <android.support.design.widget.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintTextAppearance="@style/KpHintSize">
+
+                        <EditText
+                            android:id="@+id/count2"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:enabled="true"
+                            android:hint="Jumlah Suara Paslon 02"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:padding="10dp"
+                            android:singleLine="true" />
+                    </android.support.design.widget.TextInputLayout>
+
+                    <android.support.design.widget.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintTextAppearance="@style/KpHintSize">
+
+                        <EditText
+                            android:id="@+id/suara_sah"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:enabled="false"
+                            android:hint="Jumlah Suara Sah"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:padding="10dp"
+                            android:singleLine="true" />
+                    </android.support.design.widget.TextInputLayout>
+
+                    <android.support.design.widget.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:hintTextAppearance="@style/KpHintSize">
+
+                        <EditText
+                            android:id="@+id/suara_tidak_sah"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:enabled="true"
+                            android:hint="Jumlah Suara Tidak Sah"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            android:padding="10dp"
+                            android:singleLine="true" />
+                    </android.support.design.widget.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="10dp"
+                        android:text="Foto C1 Plano"
+                        android:textAlignment="center"
+                        android:textAppearance="@style/Base.TextAppearance.AppCompat.Subhead" />
+
+                    <RelativeLayout
+                        android:id="@+id/layout_image"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:id="@+id/add_c1"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:padding="12dp"
+                            android:scaleType="fitCenter" />
+
+                        <ImageView
+                            android:id="@+id/button_close"
+                            android:layout_width="@dimen/media_bubble_remove_button_size"
+                            android:layout_height="@dimen/media_bubble_remove_button_size"
+                            android:layout_alignRight="@id/add_c1"
+                            android:layout_alignTop="@id/add_c1"
+                            android:src="@drawable/conversation_attachment_close_circle" />
+
+                    </RelativeLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layout_button"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_large"
+                        android:gravity="center_horizontal"
+                        android:orientation="horizontal"
+                        android:visibility="visible">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <android.support.design.widget.FloatingActionButton
+                                android:id="@+id/fab_gallery"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:clickable="true"
+                                android:tint="@android:color/white"
+                                app:backgroundTint="@color/kawalpilpres_primary"
+                                app:elevation="0dp"
+                                app:fabSize="normal"
+                                app:rippleColor="@android:color/white"
+                                app:srcCompat="@drawable/add_photo" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_medium"
+                                android:text="GALERI"
+                                android:textAppearance="@style/Base.TextAppearance.AppCompat.Caption"
+                                android:textColor="#666666" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <android.support.design.widget.FloatingActionButton
+                                android:id="@+id/fab_camera"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:clickable="true"
+                                android:tint="@android:color/white"
+                                app:backgroundTint="@color/kawalpilpres_primary"
+                                app:elevation="0dp"
+                                app:fabSize="normal"
+                                app:rippleColor="@android:color/white"
+                                app:srcCompat="@drawable/ic_photo_camera_dark" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_medium"
+                                android:text="KAMERA"
+                                android:textAppearance="@style/Base.TextAppearance.AppCompat.Caption"
+                                android:textColor="#666666" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:orientation="vertical">
+
+                            <android.support.design.widget.FloatingActionButton
+                                android:id="@+id/fab_example"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:clickable="true"
+                                android:tint="@android:color/white"
+                                app:backgroundTint="@color/gray27"
+                                app:elevation="0dp"
+                                app:fabSize="normal"
+                                app:rippleColor="@android:color/white"
+                                app:srcCompat="@drawable/ic_image_dark" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/spacing_medium"
+                                android:text="CONTOH C1"
+                                android:textAppearance="@style/Base.TextAppearance.AppCompat.Caption"
+                                android:textColor="#666666" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <Button
+                        android:id="@+id/submit"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/btn_rounded_primary"
+                        android:text="KIRIM"
+                        android:textColor="@android:color/white" />
+                </LinearLayout>
+            </RelativeLayout>
+        </LinearLayout>
+    </ScrollView>
+
+    <RelativeLayout
+        android:id="@+id/progress"
+        android:layout_width="match_parent"
+        android:layout_height="500dp"
+        android:layout_gravity="center_vertical"
+        android:gravity="center_vertical"
+        android:visibility="gone">
+
+        <ProgressBar
+            style="?android:attr/progressBarStyleLarge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:gravity="center_horizontal" />
+    </RelativeLayout>
+</RelativeLayout>

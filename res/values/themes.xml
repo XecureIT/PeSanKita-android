@@ -382,6 +382,16 @@
         <item name="application_background2">@color/application_background_dark2</item>
     </style>
 
+    <style name="KawalPilpres.LightTheme" parent="@style/Theme.AppCompat.Light.DarkActionBar">
+        <item name="actionBarStyle">@style/KawalPilpres.LightActionBar</item>
+        <item name="actionBarTabBarStyle">@style/KawalPilpres.LightActionBar.TabBar</item>
+        <item name="colorPrimary">@color/kawalpilpres_primary</item>
+        <item name="colorPrimaryDark">@color/kawalpilpres_primary_dark</item>
+        <item name="colorAccent">@color/kawalpilpres_primary_dark</item>
+        <item name="colorControlActivated">@color/kawalpilpres_primary</item>
+        <item name="colorControlHighlight">@color/kawalpilpres_primary</item>
+    </style>
+
     <style name="RationaleDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
         <item name="android:windowBackground">@drawable/permission_rationale_dialog_corners</item>
     </style>

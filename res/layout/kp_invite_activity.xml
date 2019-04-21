@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@color/kawalpilpres_primary">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="false"
+        android:fillViewport="true">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <ImageView
+                    android:id="@+id/logo"
+                    android:layout_width="130dp"
+                    android:layout_height="130dp"
+                    android:layout_gravity="center_horizontal"
+                    android:src="@mipmap/ic_kawal_pilpres_login" />
+
+                <android.support.v7.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    app:cardCornerRadius="2dp"
+                    app:cardElevation="2dp"
+                    app:cardUseCompatPadding="true">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:fontFamily="sans-serif-light"
+                            android:gravity="center_horizontal"
+                            android:text="#AyoNyoblos #AyoPantau"
+                            android:textSize="18sp" />
+
+                        <TextView
+                            android:id="@+id/invite_text"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="top"
+                            android:minLines="2"
+                            android:paddingStart="10dp"
+                            android:paddingTop="10dp"
+                            android:paddingEnd="10dp"
+                            android:paddingBottom="10dp"
+                            android:textSize="16dp"
+                            android:text="DIBUTUHKAN SUKARELAWAN\nKawalPilpres2019.id\n\nApakah Anda simpatisan pilpres, berintegritas, peduli, anti hoax, dan mau mengawal perhitungan suara Pilpres 2019?\n\nAyo bergabung bersama saya menjadi sukarelawan KawalPilpres2019 yang #NetralBerintegritasTerbuka dalam Gerakan #AyoNyoblos #AyoPantau.\n\nTugas sukarelawan melaporkan hasil perhitungan di TPS ke sistem KawalPilpres2019.\n\nCaranya mudah:\n\n1. Install dan aktifkan aplikasi PeSankita Indonesia https://pesan.kita.id;\n\n2. Daftar KawalPilpres (icon KawalPilpres di bagian kanan bawah) dengan kode Referensi unik: #REFERRAL#\n\n3. Gunakan fungsi Undang Teman untuk merekrut sukarelawan lainnya dengan Kode Ref. dari Anda dan coba simulasi pelaporan.\n\nHarap pastikan aplikasi PeSankita di ponsel Anda selalu terkinikan (update) karena akan terus dilakukan pembaruan aplikasi mikro KawalPilpres.\n\nInfo lebih lanjut di kawalpilpres2019.id"
+                            android:textColor="#ff333333" />
+                    </LinearLayout>
+                </android.support.v7.widget.CardView>
+
+                <android.support.v7.widget.AppCompatButton
+                    android:id="@+id/share_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="Berbagi"
+                    android:textColor="@android:color/black"
+                    android:background="@drawable/btn_rounded_primary"
+                    app:backgroundTint="@android:color/white"/>
+            </LinearLayout>
+        </RelativeLayout>
+    </ScrollView>
+</RelativeLayout>

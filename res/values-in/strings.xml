@@ -279,7 +279,9 @@
   <string name="ExportFragment_error_unable_to_write_to_storage">Galat, tidak bisa menyimpan ke penyimpanan.</string>
   <string name="ExportFragment_error_while_writing_to_storage">Galat saat menyimpan ke penyimpanan.</string>
   <string name="ExportFragment_export_successful">Ekspor berhasil.</string>
-  <!--GcmRefreshJob-->
+  <!-- GcmBroadcastReceiver -->
+  <string name="GcmBroadcastReceiver_retrieving_a_message">Mengambil pesan...</string>
+  <!--FcmRefreshJob-->
   <string name="GcmRefreshJob_Permanent_Signal_communication_failure">Kegagalan permanen komunikasi PeSankita!</string>
   <string name="GcmRefreshJob_Signal_was_unable_to_register_with_Google_Play_Services">PeSankita tidak dapat melakukan registrasi dengan Layanan Google Play. Fitur PeSankita seperti pesan dinonaktifkan, mohon registrasi ulang melalui Pengaturan &gt; Lanjutan.</string>
   <!--GiphyActivity-->

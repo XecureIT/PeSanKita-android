@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <android.support.percent.PercentRelativeLayout
+        android:id="@+id/itemLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/lStatus"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_widthPercent="5%">
+
+            <ImageView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:src="@drawable/ic_check_circle_white_18dp"
+                android:tint="@color/blue"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/lTps"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/lStatus"
+            android:orientation="vertical"
+            app:layout_widthPercent="19%">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="TPS"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/tps"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="1000"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Headline" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/lCount1"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/lTps"
+            android:orientation="vertical"
+            app:layout_widthPercent="19%">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="PAS 01"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/count1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="1000"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Headline" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/lCount2"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/lCount1"
+            android:orientation="vertical"
+            app:layout_widthPercent="19%">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="PAS 02"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/count2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="1000"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Headline" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/lsah"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/lCount2"
+            android:orientation="vertical"
+            app:layout_widthPercent="19%">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="SAH"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/s1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="2000"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Headline" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/ltdksah"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/lsah"
+            android:orientation="vertical"
+            app:layout_widthPercent="19%">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="TDKSAH"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Small" />
+
+            <TextView
+                android:id="@+id/n1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="2000"
+                android:textAlignment="center"
+                android:textAppearance="@style/Base.TextAppearance.AppCompat.Headline" />
+        </LinearLayout>
+    </android.support.percent.PercentRelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/gray10" />
+</LinearLayout>

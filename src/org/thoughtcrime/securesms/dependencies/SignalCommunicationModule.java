@@ -6,11 +6,12 @@ import org.thoughtcrime.securesms.BuildConfig;
 import org.thoughtcrime.securesms.CreateProfileActivity;
 import org.thoughtcrime.securesms.DeviceListFragment;
 import org.thoughtcrime.securesms.crypto.storage.SignalProtocolStoreImpl;
+import org.thoughtcrime.securesms.gcm.FcmService;
 import org.thoughtcrime.securesms.jobs.AttachmentDownloadJob;
 import org.thoughtcrime.securesms.jobs.AvatarDownloadJob;
 import org.thoughtcrime.securesms.jobs.CleanPreKeysJob;
 import org.thoughtcrime.securesms.jobs.CreateSignedPreKeyJob;
-import org.thoughtcrime.securesms.jobs.GcmRefreshJob;
+import org.thoughtcrime.securesms.jobs.FcmRefreshJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceBlockedUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceContactUpdateJob;
 import org.thoughtcrime.securesms.jobs.MultiDeviceGroupUpdateJob;
@@ -59,7 +60,7 @@ import dagger.Provides;
                                      MultiDeviceBlockedUpdateJob.class,
                                      DeviceListFragment.class,
                                      RefreshAttributesJob.class,
-                                     GcmRefreshJob.class,
+                                     FcmRefreshJob.class,
                                      RequestGroupInfoJob.class,
                                      PushGroupUpdateJob.class,
                                      AvatarDownloadJob.class,
@@ -71,7 +72,8 @@ import dagger.Provides;
                                      RetrieveProfileAvatarJob.class,
                                      MultiDeviceProfileKeyUpdateJob.class,
                                      SendReadReceiptJob.class,
-                                     MultiDeviceReadReceiptUpdateJob.class})
+                                     MultiDeviceReadReceiptUpdateJob.class,
+                                     FcmService.class})
 public class SignalCommunicationModule {
 
   private final Context                      context;

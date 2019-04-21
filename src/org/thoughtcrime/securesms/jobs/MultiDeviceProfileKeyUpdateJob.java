@@ -87,6 +87,6 @@ public class MultiDeviceProfileKeyUpdateJob extends MasterSecretJob implements I
 
   @Override
   public void onCanceled() {
-    Log.w(TAG, "Profile key sync failed!");
+    Log.w(TAG, "KPProfile key sync failed!");
   }
 }

@@ -11,7 +11,7 @@ import android.util.Log;
 import org.thoughtcrime.securesms.ApplicationContext;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.dependencies.InjectableType;
-import org.thoughtcrime.securesms.gcm.GcmBroadcastReceiver;
+import org.thoughtcrime.securesms.gcm.FcmService;
 import org.thoughtcrime.securesms.jobs.PushContentReceiveJob;
 import org.thoughtcrime.securesms.notifications.NotificationChannels;
 import org.thoughtcrime.securesms.util.TextSecurePreferences;
@@ -105,7 +105,7 @@ public class MessageRetrievalService extends Service implements InjectableType, 
   }
 
   private void setForegroundIfNecessary() {
-    if (TextSecurePreferences.isGcmDisabled(this)) {
+    if (TextSecurePreferences.isFcmDisabled(this)) {
       NotificationCompat.Builder builder = new NotificationCompat.Builder(this, NotificationChannels.OTHER);
       builder.setContentTitle(getString(R.string.MessageRetrievalService_signal));
       builder.setContentText(getString(R.string.MessageRetrievalService_background_connection_enabled));
@@ -136,13 +136,12 @@ public class MessageRetrievalService extends Service implements InjectableType, 
   private synchronized void decrementPushReceived() {
     if (!pushPending.isEmpty()) {
       Intent intent = pushPending.remove(0);
-      GcmBroadcastReceiver.completeWakefulIntent(intent);
       notifyAll();
     }
   }
 
   private synchronized boolean isConnectionNecessary() {
-    boolean isGcmDisabled = TextSecurePreferences.isGcmDisabled(this);
+    boolean isGcmDisabled = TextSecurePreferences.isFcmDisabled(this);
 
     Log.w(TAG, String.format("Network requirement: %s, active activities: %s, push pending: %s, gcm disabled: %b",
                              networkRequirement.isPresent(), activeActivities, pushPending.size(), isGcmDisabled));

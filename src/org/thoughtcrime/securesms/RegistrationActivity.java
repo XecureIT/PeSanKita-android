@@ -124,7 +124,7 @@ public class RegistrationActivity extends BaseActionBarActivity {
     if (getIntent().getBooleanExtra("cancel_button", false)) {
       this.skipButton.setVisibility(View.VISIBLE);
     } else {
-      this.skipButton.setVisibility(View.INVISIBLE);
+      this.skipButton.setVisibility(View.GONE);
     }
 
     findViewById(R.id.twilio_shoutout).setOnClickListener(new View.OnClickListener() {

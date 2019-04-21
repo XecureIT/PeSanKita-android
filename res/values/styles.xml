@@ -64,6 +64,17 @@
         <item name="android:textColorSecondary">#BFffffff</item>
     </style>
 
+    <style name="KawalPilpres.LightActionBar"
+        parent="@style/Widget.AppCompat.ActionBar">
+        <item name="background">@color/kawalpilpres_primary</item>
+        <item name="elevation">2dp</item>
+        <item name="popupTheme">@style/ThemeOverlay.AppCompat.Light</item>
+        <item name="titleTextStyle">@style/TextSecure.TitleTextStyle</item>
+        <item name="subtitleTextStyle">@style/TextSecure.SubtitleTextStyle</item>
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">#BFffffff</item>
+    </style>
+
     <style name="TextSecure.FlatLightActionBar"
            parent="@style/TextSecure.LightActionBar">
         <item name="elevation">0dp</item>
@@ -79,6 +90,12 @@
         parent="@style/Widget.AppCompat.ActionBar.TabBar">
         <item name="android:background">@color/textsecure_primary</item>
         <item name="background">@color/textsecure_primary</item>
+    </style>
+
+    <style name="KawalPilpres.LightActionBar.TabBar"
+        parent="@style/Widget.AppCompat.ActionBar.TabBar">
+        <item name="android:background">@color/kawalpilpres_primary</item>
+        <item name="background">@color/kawalpilpres_primary</item>
     </style>
 
     <style name="TextSecure.TitleTextStyle" parent="TextAppearance.AppCompat.Widget.ActionBar.Title">
@@ -261,6 +278,21 @@
 
     <style name="Color1SwitchStyle">
         <item name="colorControlActivated">@color/white</item>
+    </style>
+
+    <style name="KpHintSize" parent="TextAppearance.Design.Hint">
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="RippleStyleWhite">
+        <item name="mrl_rippleOverlay">true</item>
+        <item name="mrl_rippleColor">#80FFFFFF</item>
+        <item name="mrl_rippleHover">true</item>
+        <item name="mrl_rippleAlpha">0.2</item>
+    </style>
+
+    <style name="RippleStyleBlack" parent="RippleStyleWhite">
+        <item name="mrl_rippleColor">#8096989A</item>
     </style>
 
 </resources>

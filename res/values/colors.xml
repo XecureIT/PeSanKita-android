@@ -9,6 +9,9 @@
     <color name="textsecure_primary_dark">@color/signal_primary_dark</color>
     <color name="textsecure_primary_alpha33">@color/signal_primary_alpha33</color>
 
+    <color name="kawalpilpres_primary">#FFD32F2F</color>
+    <color name="kawalpilpres_primary_dark">#FFD32F2F</color>
+
     <color name="white">#ffffffff</color>
     <color name="black">#ff000000</color>
     <color name="gray5">#ffeeeeee</color>

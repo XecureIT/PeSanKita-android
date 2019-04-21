@@ -81,9 +81,9 @@
     <uses-permission android:name="android.permission.WRITE_CALL_LOG"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/ -->
 
-    <permission android:name="id.kita.pesan.secure.permission.C2D_MESSAGE"
+    <!-- <permission android:name="id.kita.pesan.secure.permission.C2D_MESSAGE"
                 android:protectionLevel="signature" />
-    <uses-permission android:name="id.kita.pesan.secure.permission.C2D_MESSAGE" />
+    <uses-permission android:name="id.kita.pesan.secure.permission.C2D_MESSAGE" /> -->
 
     <application android:name=".ApplicationContext"
                  android:icon="@mipmap/ic_launcher"
@@ -103,6 +103,11 @@
 
     <!--meta-data android:name="com.google.android.gms.car.application"
         android:resource="@xml/automotive_app_desc" /-->
+
+    <meta-data android:name="firebase_analytics_collection_deactivated" android:value="true" />
+    <meta-data android:name="google_analytics_adid_collection_enabled" android:value="false" />
+    <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
+    <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
 
     <activity android:name="org.thoughtcrime.securesms.WebRtcCallActivity"
               android:excludeFromRecents="true"
@@ -445,6 +450,46 @@
         </intent-filter>
     </activity>
 
+    <activity android:name=".pemilu.KPSplashActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPLoginActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Login"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPRegisterActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Registrasi"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPDashboardActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Kawal Pilpres 2019"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPInviteActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Undang Teman"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPProfileActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Akun saya"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPLaporanActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Laporan Saya"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+    <activity android:name=".pemilu.KPLaporanBaruActivity"
+              android:theme="@style/KawalPilpres.LightTheme"
+              android:label="Form Laporan"
+              android:windowSoftInputMode="stateHidden"
+              android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+
     <service android:enabled="true" android:name="org.thoughtcrime.securesms.service.WebRtcCallService"/>
 
     <service android:enabled="true" android:name=".service.ApplicationMigrationService"/>
@@ -487,12 +532,11 @@
         </intent-filter>
     </service>
 
-    <receiver android:name=".gcm.GcmBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND" >
+    <service android:name=".gcm.FcmService">
         <intent-filter>
-            <action android:name="com.google.android.c2dm.intent.RECEIVE" />
-            <category android:name="id.kita.pesan.secure" />
+            <action android:name="com.google.firebase.MESSAGING_EVENT" />
         </intent-filter>
-    </receiver>
+    </service>
 
     <!--
     <receiver android:name=".service.SmsListener"
@@ -581,6 +625,16 @@
     <provider android:name=".database.DatabaseContentProviders$Recipient"
               android:authorities="xecurechat"
               android:exported="false" />
+
+    <provider
+        android:name="android.support.v4.content.FileProvider"
+        android:authorities="com.example.android.fileprovider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+            android:name="android.support.FILE_PROVIDER_PATHS"
+            android:resource="@xml/file_paths"></meta-data>
+    </provider>
 
     <receiver android:name=".service.RegistrationNotifier"
               android:exported="false">
